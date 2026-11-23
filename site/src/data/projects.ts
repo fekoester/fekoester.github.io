@@ -23,6 +23,47 @@ const gh = (repo: string) => ({ label: 'GitHub', href: `https://github.com/fekoe
 
 export const projects: Project[] = [
   {
+    slug: 'llm-training-dynamics',
+    title: 'The Physics of LLM Training',
+    eyebrow: 'LLM training dynamics',
+    category: 'Research',
+    year: '2026',
+    summary:
+      'Transformer computation and training written as one action principle, then tested: what actually speeds up language-model training at fixed compute, and what provably cannot.',
+    description: [
+      'Forward pass, backpropagation and gradient descent all follow as Euler–Lagrange equations of one action. The state x and the adjoint λ live in depth s; the weights move in a second, slow time t. In this picture the data enters as a source term and the optimizer’s metric as the kinetic term. That separation turns out to be the useful one in practice.',
+      'Data reweighting is zero-sum. On TinyStories the loss on a pattern falls logarithmically with how often it has been seen (about 0.5 nats per e-fold of exposures), and forgetting is weak. With that law, Gibbs’ inequality says the natural data distribution is already the optimal sampling distribution. Measured: upsampling rare stories gains on rare patterns exactly what it loses on frequent ones.',
+      'There is one universal trajectory. Learning rate, Adam β₂, width and depth only change the speed along a single per-pattern loss trajectory (residuals ≤ 0.05 nats). Only the optimizer metric changes the path itself. Muon is worth about 1.36× the data of AdamW at 2.6M parameters, with extra gain on rare patterns.',
+      'Linear response of training: switching a token weighting off late in training is described by a two-timescale relaxation model. Fitted on nine switch points, it predicts the optimal switch time that the experiments then show.',
+      'Current work: a new optimizer metric, aimed at rare tokens, that adds to Muon’s gain at 2.6M–27M parameters. It is being tested at 30M–124M parameters on FineWeb. Details follow once those runs are in.',
+    ],
+    equations: [
+      {
+        tex: String.raw`\mathcal{S}[x,\lambda,\theta] = \Big\langle \sum_i \ell_i\big(Ux_i(1)\big) + \sum_i \int_0^1 \lambda_i(s)\cdot\big(\partial_s x_i - f_i(x,\theta(s))\big)\,ds \Big\rangle_{\text{data}}`,
+        caption: 'Action over depth s. δS/δλ = 0 is the forward pass, δS/δx = 0 is backpropagation, δS/δθ = 0 is a trained network.',
+      },
+      {
+        tex: String.raw`\mathcal{A} = \int dt\; e^{\gamma t}\Big(\tfrac{m}{2}\lVert\partial_t\theta\rVert^2 - \mathcal{S}\Big) \;\Longrightarrow\; m\,\ddot\theta + m\gamma\,\dot\theta = -\frac{\delta\mathcal{S}}{\delta\theta}`,
+        caption: 'Training as motion in a second time: SGD with momentum. The limit m → 0 at fixed mγ = 1/η is gradient flow. x and λ have no kinetic term, which encodes the infinite separation between computing and learning.',
+      },
+      {
+        tex: String.raw`\ell(c) \simeq \ell_0 - \beta \ln c \;\;\Rightarrow\;\; L(q) = \text{const} - \beta \sum_i p_i \ln q_i \;\ge\; L(p)`,
+        caption: 'Exposure law and why reweighting the data cannot help: Gibbs’ inequality puts the minimum at q = p.',
+      },
+      {
+        tex: String.raw`L(x) = L_\infty - A\,e^{-x/\tau_{\text{gain}}} + B\,e^{-x/\tau_{\text{bias}}},\qquad x^* \simeq \tau_{\text{bias}}\ln\frac{B\,\tau_{\text{gain}}}{A\,\tau_{\text{bias}}}`,
+        caption: 'Two-timescale response to switching a token weighting off with learning-rate budget x left. The predicted optimum x* matches the measured one.',
+      },
+    ],
+    caveats: [
+      'The action framework (forward pass, adjoint, gradient flow, SDE picture) assembles standard results. Writing it as one object with generation as the omitted boundary term is ours, but we do not claim it is new.',
+      'Measurements so far use small models (344k to 27M parameters) on Tiny Shakespeare and TinyStories with few seeds. The larger-scale runs are still in progress.',
+    ],
+    tags: ['LLM training', 'Optimizers', 'Statistical physics', 'Muon', 'PyTorch'],
+    status: 'Research in progress',
+    featured: true,
+  },
+  {
     slug: 'reservoir-language-model',
     title: 'Reservoir Computing as a Language Model',
     eyebrow: 'Efficient language models',
