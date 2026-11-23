@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { projects, categories } from '../../data/projects';
+const blurbs = {
+  Research: 'Work behind papers, or heading toward one.',
+  Software: 'Tools and systems other people can use today.',
+  Experiment: 'Architecture and learning experiments: small, fast, honest.',
+  Simulation: 'Dynamical systems, emergence and artificial life, mostly C++.',
+};
+---
+<BaseLayout title="Projects — Felix Köster" description="Research code, software, ML experiments and simulations by Felix Köster.">
+  <section class="section intro">
+    <div class="container">
+      <p class="kicker">Work archive</p>
+      <h1>Projects</h1>
+      <p class="lede">Research code, tools, experiments and simulations. Everything listed here is open source on GitHub.</p>
+    </div>
+  </section>
+  {categories.map((cat) => (
+    <section class="section">
+      <div class="container">
+        <div class="section-head"><div><p class="kicker">{cat}</p><h2>{cat === 'Research' ? 'Research' : cat === 'Software' ? 'Software & tools' : cat === 'Experiment' ? 'ML experiments' : 'Simulations'}</h2></div><p>{blurbs[cat]}</p></div>
+        <div class="grid three">
+          {projects.filter((p) => p.category === cat).map((project) => <ProjectCard project={project} />)}
+        </div>
+      </div>
+    </section>
+  ))}
+</BaseLayout>
+<style>.intro { padding-bottom: 55px; } .intro h1 { margin-bottom: 26px; }</style>

@@ -1,0 +1,45 @@
+---
+import { site } from '../data/site';
+const path = Astro.url.pathname;
+const nav = [
+  { href: '/projects', label: 'Projects' },
+  { href: '/research', label: 'Publications' },
+  { href: '/cv', label: 'CV' },
+  { href: '/about', label: 'About' },
+];
+---
+<header class="site-header">
+  <div class="container bar">
+    <a class="brand" href="/" aria-label={`${site.name} home`}>
+      <span class="brand-mark">{site.shortName}</span>
+      <span class="brand-name">{site.name}</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      {nav.map((item) => (
+        <a href={item.href} class:list={[path.startsWith(item.href) && 'active']}>{item.label}</a>
+      ))}
+    </nav>
+    <button class="theme" id="theme-toggle" aria-label="Toggle color theme" title="Toggle color theme">
+      <span aria-hidden="true">◐</span>
+    </button>
+  </div>
+</header>
+
+<style>
+  .site-header { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(18px); background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--line); }
+  .bar { min-height: 68px; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 24px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; width: fit-content; font-weight: 800; }
+  .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 0.77rem; letter-spacing: 0.04em; }
+  .brand-name { letter-spacing: -0.02em; }
+  nav { display: flex; align-items: center; gap: 20px; }
+  nav a { color: var(--muted); font-size: 0.93rem; font-weight: 650; }
+  nav a.active, nav a:hover { color: var(--text); }
+  .theme { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+  @media (max-width: 720px) {
+    .bar { grid-template-columns: 1fr auto; gap: 12px; min-height: 62px; }
+    .brand-name { display: none; }
+    nav { order: 3; grid-column: 1 / -1; overflow-x: auto; padding-bottom: 10px; gap: 17px; }
+    nav a { white-space: nowrap; }
+    .theme { justify-self: end; }
+  }
+</style>

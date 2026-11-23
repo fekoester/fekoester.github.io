@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PublicationList from '../components/PublicationList.astro';
+import { publications } from '../data/publications';
+import { site } from '../data/site';
+const journal = publications.filter((p) => p.status === 'Journal');
+const preprints = publications.filter((p) => p.status === 'Preprint');
+---
+<BaseLayout title="Publications — Felix Köster" description="Publications by Felix Köster on reservoir computing, delay systems, attention-enhanced reservoirs and reservoir language models.">
+  <section class="section research-hero">
+    <div class="container">
+      <p class="kicker">Publications</p>
+      <h1>Physics × machine learning.</h1>
+      <p class="lede">From the theory of delay-based photonic reservoirs (memory capacity, eigenvalue structure, the role of delay times) to attention-enhanced reservoirs and reservoir computers that model language.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><div><p class="kicker">Peer reviewed</p><h2>Journal articles</h2></div><p>{journal.length} articles. Code links point to the public implementation where one exists.</p></div>
+      <PublicationList items={journal} />
+    </div>
+  </section>
+  {preprints.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <div class="section-head"><div><p class="kicker">Not yet peer reviewed</p><h2>Preprints</h2></div></div>
+        <PublicationList items={preprints} numbered={false} />
+      </div>
+    </section>
+  )}
+  <section class="section">
+    <div class="container themes">
+      <div><p class="kicker">Themes</p><h2>What I work on</h2></div>
+      <ul class="rule-list">
+        <li><strong>Delay-based reservoir computing</strong><span>One nonlinear node plus delayed feedback as a high-dimensional computer: memory capacity, information processing capacity, eigenvalue analysis, photonic hardware.</span></li>
+        <li><strong>Attention-enhanced reservoirs</strong><span>State-dependent readouts on fixed dynamics: smaller reservoirs, multiple attractors, better closed-loop forecasts.</span></li>
+        <li><strong>Efficient language models</strong><span>Reservoir and hybrid architectures for language: what can be left untrained, and what that buys at inference.</span></li>
+        <li><strong>Learning dynamics</strong><span>Treating training itself as a dynamical system: gradient flow, susceptibilities, and optimizer memory.</span></li>
+      </ul>
+      <p class="note">Missing a paper or a link? The list is maintained by hand; see <a href={site.links.github}>GitHub</a> for code.</p>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .research-hero h1 { max-width: 980px; margin-bottom: 30px; }
+  .themes { display: grid; grid-template-columns: .7fr 1.3fr; gap: 80px; }
+  .rule-list li { display: grid; grid-template-columns: 230px 1fr; gap: 30px; }
+  .rule-list span { color: var(--muted); }
+  .note { grid-column: 2; font-size: .85rem; }
+  .note a { color: var(--accent); }
+  @media (max-width: 760px) { .themes, .rule-list li { grid-template-columns: 1fr; gap: 10px; } .note { grid-column: 1; } }
+</style>

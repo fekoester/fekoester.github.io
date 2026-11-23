@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { experience, education, skills } from '../data/cv';
+import { site } from '../data/site';
+---
+<BaseLayout title="CV — Felix Köster" description="Curriculum vitae of Felix Köster, AI researcher and theoretical physicist.">
+  <section class="section cv-hero">
+    <div class="container head-grid">
+      <div><p class="kicker">Curriculum vitae</p><h1>{site.name}</h1><p class="lede">Theoretical physicist and machine-learning researcher: nonlinear dynamics, reservoir computing, efficient language models.</p></div>
+      <div class="cv-actions">
+        <a class="button primary" href="/research">Publications →</a>
+        <a class="button" href={site.links.github}>GitHub ↗</a>
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container cv-grid">
+      <h2>Experience</h2>
+      <div>
+        {experience.map((item) => (
+          <article class="entry">
+            <div class="period mono">{item.period}</div>
+            <div><h3>{item.role}</h3><p class="org">{item.organization} · {item.location}</p><p>{item.description}</p></div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container cv-grid">
+      <h2>Education</h2>
+      <div>
+        {education.map((item) => (
+          <article class="entry">
+            <div class="period mono">{item.period}</div>
+            <div><h3>{item.degree}</h3><p class="org">{item.organization}</p><p>{item.detail}</p></div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container cv-grid">
+      <h2>Skills</h2>
+      <ul class="skills">{skills.map((skill) => <li>{skill}</li>)}</ul>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .head-grid { display: grid; grid-template-columns: 1.4fr .6fr; gap: 70px; align-items: end; }
+  .cv-hero h1 { margin-bottom: 25px; }
+  .cv-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cv-grid { display: grid; grid-template-columns: 260px 1fr; gap: 80px; }
+  .entry { display: grid; grid-template-columns: 150px 1fr; gap: 28px; padding: 0 0 28px; margin: 0 0 28px; border-bottom: 1px solid var(--line); }
+  .entry:last-child { margin-bottom: 0; }
+  .period { color: var(--accent); font-size: .78rem; padding-top: 4px; }
+  .entry h3 { margin-bottom: 5px; }
+  .entry p { margin-bottom: 0; }
+  .org { color: var(--text); font-weight: 650; }
+  .skills { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px; }
+  .skills li { padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+  @media (max-width: 760px) { .head-grid, .cv-grid, .entry { grid-template-columns: 1fr; gap: 22px; } }
+</style>

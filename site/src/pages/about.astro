@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../data/site';
+---
+<BaseLayout title="About — Felix Köster" description="About Felix Köster: theoretical physicist and machine-learning researcher based in Tokyo.">
+  <section class="section about-hero">
+    <div class="container">
+      <p class="kicker">About</p>
+      <h1>I like understanding systems deeply enough to build with them.</h1>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container about-grid">
+      <div class="facts mono">
+        <span><b>Based</b> {site.location}</span>
+        <span><b>Field</b> physics × ML</span>
+        <span><b>PhD</b> TU Berlin</span>
+        <span><b>Postdoc</b> Saitama Univ.</span>
+      </div>
+      <article>
+        <p>I trained as a theoretical physicist at TU Berlin, where my PhD was on delay-based reservoir computing: how a single nonlinear node with delayed feedback can act as a high-dimensional computer, and what its memory and processing capacity actually are.</p>
+        <p>As a postdoc and JSPS fellow at Saitama University in Japan I moved toward machine learning proper: attention-enhanced reservoirs, reservoirs that learn several dynamical systems at once, and reservoir computers as language models. I now work on large language models in industry in Tokyo.</p>
+        <p>What connects all of it is a physicist’s habit: reduce the system to the mechanism that matters, write down the equations, then build the smallest thing that tests them. That is why many projects here are also small simulations or from-scratch reimplementations.</p>
+        <p>Everything on this site is independent or academic work with public code. Industry work is not shown here.</p>
+        {(site.links.email || site.links.github) && (
+          <div class="button-row">
+            {site.links.email && <a class="button primary" href={site.links.email}>Get in touch</a>}
+            {site.links.github && <a class="button" href={site.links.github}>GitHub ↗</a>}
+          </div>
+        )}
+      </article>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .about-hero h1 { max-width: 1050px; }
+  .about-grid { display: grid; grid-template-columns: .55fr 1fr; gap: 100px; }
+  .facts { display: grid; align-content: start; gap: 12px; color: var(--muted); font-size: .82rem; }
+  .facts span { display: grid; grid-template-columns: 70px 1fr; gap: 12px; }
+  .facts b { color: var(--accent); text-transform: uppercase; font-size: .72rem; letter-spacing: .1em; }
+  article { max-width: 720px; }
+  article p { font-size: 1.15rem; line-height: 1.75; }
+  @media (max-width: 760px) { .about-grid { grid-template-columns: 1fr; gap: 50px; } }
+</style>

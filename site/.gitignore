@@ -1,0 +1,59 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+.env
+.env.*
+!.env.example
+# --- standard backup ignore (generated/downloadable stuff stays out) ---
+# environments and caches
+.venv*/
+venv*/
+env/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+node_modules/
+.pytest_cache/
+.mypy_cache/
+.cache/
+.DS_Store
+# secrets
+.env
+.env.*
+*.pem
+*.key
+kaggle.json
+credentials*.json
+*token*.txt
+# build outputs
+build/
+dist/
+*.egg-info/
+.godot/
+Library/
+Temp/
+Obj/
+obj/
+Logs/
+UserSettings/
+# model weights and large data
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.h5
+*.npz
+*.npy
+*.pkl
+*.parquet
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.mp4
+*.mkv
+wandb/
+runs/
+checkpoints/

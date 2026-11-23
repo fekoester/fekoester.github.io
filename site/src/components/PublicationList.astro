@@ -1,0 +1,35 @@
+---
+import type { Publication } from '../data/publications';
+interface Props { items: Publication[]; numbered?: boolean }
+const { items, numbered = true } = Astro.props;
+---
+<ol class="pubs">
+  {items.map((pub, index) => (
+    <li>
+      <div class="index mono">{numbered ? String(items.length - index).padStart(2, '0') : pub.year}</div>
+      <div>
+        <h3>{pub.title}</h3>
+        <p class="authors" set:html={pub.authors.replace('Felix Köster', '<strong>Felix Köster</strong>')} />
+        <p class="meta"><em>{pub.venue}</em> · {pub.year}{pub.status === 'Preprint' && <span class="badge">Preprint</span>}</p>
+        {pub.links && (
+          <div class="pub-links">
+            {pub.links.map((link) => <a href={link.href}>{link.label} ↗</a>)}
+          </div>
+        )}
+      </div>
+    </li>
+  ))}
+</ol>
+<style>
+  .pubs { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+  li { display: grid; grid-template-columns: 52px 1fr; gap: 20px; padding: 25px 0; border-bottom: 1px solid var(--line); }
+  .index { color: var(--accent); font-size: 0.82rem; padding-top: 4px; }
+  h3 { margin: 0 0 8px; font-size: clamp(1.1rem, 2vw, 1.4rem); }
+  p { margin: 0; }
+  .authors { color: var(--muted); font-size: 0.94rem; }
+  .authors :global(strong) { color: var(--text); }
+  .meta { margin-top: 3px; font-size: 0.88rem; }
+  .badge { margin-left: 10px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: .72rem; font-weight: 750; }
+  .pub-links { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 12px; font-size: 0.84rem; font-weight: 750; color: var(--accent); }
+  @media (max-width: 520px) { li { grid-template-columns: 1fr; gap: 6px; } }
+</style>

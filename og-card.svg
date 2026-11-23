@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#111311"/>
+  <circle cx="1000" cy="80" r="360" fill="#315d51" opacity=".18"/>
+  <text x="90" y="250" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#eff1eb">Felix Köster</text>
+  <text x="95" y="330" font-family="Arial, sans-serif" font-size="34" fill="#a6aba2">Theoretical Physics × Machine Learning</text>
+  <text x="95" y="515" font-family="monospace" font-size="24" fill="#9dc6b5">RESERVOIR COMPUTING / DYNAMICS / LANGUAGE MODELS</text>
+</svg>
