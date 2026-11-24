@@ -78,10 +78,13 @@ import DemoFrame from '../DemoFrame.astro';
         ctx.strokeStyle = pal.text; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(box.x, ty(0)); ctx.lineTo(box.x + box.w, ty(0)); ctx.stroke();
         ctx.font = '600 12px Inter, system-ui, sans-serif';
-        ctx.fillStyle = pal.accent; ctx.textAlign = 'right';
-        ctx.fillText(T < 1 ? 'rare patterns: better' : 'frequent patterns: better', box.x + box.w - 6, box.y + 10);
-        ctx.fillStyle = pal.coral;
-        ctx.fillText(T < 1 ? 'frequent patterns: worse' : 'rare patterns: worse', box.x + box.w - 6, box.y + box.h - 10);
+        // positive Δ (worse) is at the top, negative (better) at the bottom
+        const worse = T < 1 ? 'frequent patterns: worse' : 'rare patterns: worse';
+        const better = T < 1 ? 'rare patterns: better' : 'frequent patterns: better';
+        ctx.fillStyle = pal.coral; ctx.textAlign = T < 1 ? 'left' : 'right';
+        ctx.fillText(worse, T < 1 ? box.x + 8 : box.x + box.w - 6, box.y + 10);
+        ctx.fillStyle = pal.accent; ctx.textAlign = T < 1 ? 'right' : 'left';
+        ctx.fillText(better, T < 1 ? box.x + box.w - 6 : box.x + 8, box.y + box.h - 10);
       }
       // right: expected loss on the natural distribution against T
       {

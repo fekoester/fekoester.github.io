@@ -16,12 +16,16 @@ export function getStaticPaths() {
   }));
 }
 const { project, prev, next } = Astro.props;
-const hero = project.hero ?? { src: project.cover, alt: project.coverAlt };
+// A hero video that is also a figure is shown once, at the top, with the figure's caption.
+const heroBase = project.hero ?? { src: project.cover, alt: project.coverAlt };
+const heroFig = project.figures?.find((f) => f.src === heroBase.src);
+const hero = heroFig ? { ...heroFig, ...heroBase, caption: heroFig.caption, source: heroFig.source } : heroBase;
+const figures = (project.figures ?? []).filter((f) => f !== heroFig);
 const toc = [
   { id: 'overview', label: 'Overview' },
   project.demo && { id: 'demo', label: 'Live demo' },
   project.equations && { id: 'math', label: 'The math' },
-  project.figures?.length && { id: 'results', label: 'Results & media' },
+  figures.length && { id: 'results', label: 'Results & media' },
   project.caveats && { id: 'caveats', label: 'Caveats' },
 ].filter(Boolean) as { id: string; label: string }[];
 ---
@@ -86,12 +90,12 @@ const toc = [
           </div>
         )}
 
-        {project.figures && project.figures.length > 0 && (
+        {figures.length > 0 && (
           <div id="results" class="anchor block">
             <p class="kicker">Results &amp; media</p>
             <h2 class="block-title">From the repositories</h2>
             <div class="figures">
-              {project.figures.map((f) => <MediaFigure media={f} />)}
+              {figures.map((f) => <MediaFigure media={f} />)}
             </div>
           </div>
         )}
@@ -131,7 +135,8 @@ const toc = [
   .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 56px; align-items: center; }
   .meta { display: flex; flex-wrap: wrap; gap: 18px; color: var(--accent); font-size: .76rem; text-transform: uppercase; letter-spacing: .12em; }
   .status[data-status='Research in progress'], .status[data-status='Active'] { color: var(--amber); }
-  h1 { margin: 20px 0 24px; font-size: clamp(2.6rem, 5.4vw, 4.8rem); }
+  h1 { margin: 20px 0 24px; font-size: clamp(2.3rem, 5.4vw, 4.8rem); overflow-wrap: anywhere; hyphens: auto; }
+  .hero-grid > * { min-width: 0; }
   .hero-text .lede { font-size: clamp(1.08rem, 1.6vw, 1.3rem); }
   .facts { margin-top: 44px; }
   .facts dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--line); }
@@ -154,7 +159,10 @@ const toc = [
   .equations { display: grid; gap: 14px; }
   .eq { margin: 0; padding: 18px 20px; overflow-x: auto; }
   .eq figcaption { margin-top: 6px; color: var(--muted); font-size: .86rem; }
-  .figures { display: grid; gap: 44px; }
+  .figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px 22px; }
+  .figures > :global(.mfig) { grid-column: 1 / -1; }
+  .figures > :global(.mfig.half) { grid-column: auto; }
+  @media (max-width: 560px) { .figures > :global(.mfig.half) { grid-column: 1 / -1; } }
   .highlights, .caveats { padding: 24px; margin-top: 56px; }
   .caveats { border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); background: color-mix(in srgb, var(--amber) 7%, var(--surface)); }
   .caveats p:last-child { margin-bottom: 0; }

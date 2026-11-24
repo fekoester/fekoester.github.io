@@ -20,7 +20,7 @@ import DemoFrame from '../DemoFrame.astro';
     <div class="demo-readout">
       <span><span class="legend-dot" style="background:#7fb0d8"></span>input u(t)</span>
       <span><span class="legend-dot" style="background:#e3a857"></span>field at the query point (rescaled)</span>
-      <span>best correlation <b class="corr">–</b> at lag <b class="lag">–</b></span>
+      <span>best correlation <b class="corr">–</b> at lag <b class="lag">–</b> (positive or negative: the medium may invert the signal)</span>
     </div>
   </div>
 </DemoFrame>
@@ -35,7 +35,7 @@ import DemoFrame from '../DemoFrame.astro';
     let q = { x: 84, y: 22 };
     // Mackey-Glass drive (tau = 17), sampled every 1 time unit
     const mg: number[] = [];
-    { const hist = Array(18).fill(1.2); for (let t = 0; t < 6000; t++) { const x = hist[hist.length - 1], xt = hist[hist.length - 18]; hist.push(x + 0.2 * xt / (1 + xt ** 10) - 0.1 * x); if (t > 500) mg.push(hist[hist.length - 1] - 0.9); } }
+    { const hist = Array(18).fill(1.2); for (let t = 0; t < 6000; t++) { const x = hist[hist.length - 1], xt = hist[hist.length - 18]; hist.push(x + 0.2 * xt / (1 + xt ** 10) - 0.1 * x); if (t > 500) mg.push(hist[hist.length - 1]); } const m0 = mg.reduce((a, b) => a + b, 0) / mg.length; for (let i = 0; i < mg.length; i++) mg[i] -= m0; }
     let tstep = 0;
     const H = 300; // trace history
     const drive: number[] = [], read: number[] = [];
@@ -46,7 +46,7 @@ import DemoFrame from '../DemoFrame.astro';
     const img = octx.createImageData(GW, GH);
 
     function step() {
-      const d = mg[Math.floor(tstep / 4) % mg.length];
+      const d = mg[Math.floor(tstep / 2) % mg.length];
       for (let j = 1; j < GH - 1; j++) for (let i = 1; i < GW - 1; i++) {
         const k = j * GW + i;
         const lap = u[k - 1] + u[k + 1] + u[k - GW] + u[k + GW] - 4 * u[k];
@@ -98,9 +98,14 @@ import DemoFrame from '../DemoFrame.astro';
       // best lagged correlation
       let best = 0, lag = 0;
       for (let L = 0; L < 120 && a.length > L + 40; L++) {
-        let s = 0; const n = a.length - L;
-        for (let k = 0; k < n; k++) s += a[k] * b[k + L];
-        const c = s / n; if (Math.abs(c) > Math.abs(best)) { best = c; lag = L; }
+        const n = a.length - L;
+        let ma = 0, mb = 0;
+        for (let k = 0; k < n; k++) { ma += a[k]; mb += b[k + L]; }
+        ma /= n; mb /= n;
+        let sab = 0, saa = 0, sbb = 0;
+        for (let k = 0; k < n; k++) { const x = a[k] - ma, y = b[k + L] - mb; sab += x * y; saa += x * x; sbb += y * y; }
+        const c = sab / Math.sqrt(saa * sbb || 1);
+        if (Math.abs(c) > Math.abs(best)) { best = c; lag = L; }
       }
       root.querySelector('.corr')!.textContent = best.toFixed(2);
       root.querySelector('.lag')!.textContent = `${lag} steps`;

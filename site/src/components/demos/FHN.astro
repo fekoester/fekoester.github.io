@@ -7,7 +7,7 @@ import DemoFrame from '../DemoFrame.astro';
   </div>
   <div class="fhn" data-demo="fhn">
     <div class="demo-controls">
-      <label>input current I <input type="range" name="I" id="fhn-i" min="0" max="1.6" step="0.01" value="0.2" /><output for="fhn-i"></output></label>
+      <label>input current I <input type="range" name="I" id="fhn-i" min="0" max="1.6" step="0.01" value="0.5" /><output for="fhn-i"></output></label>
       <label>a <input type="range" name="a" id="fhn-a" min="0.4" max="1.1" step="0.01" value="0.7" /><output for="fhn-a"></output></label>
       <button class="demo-btn primary" data-act="kick">Kick (+0.8 to v)</button>
     </div>
@@ -30,7 +30,7 @@ import DemoFrame from '../DemoFrame.astro';
 
   document.querySelectorAll<HTMLElement>('[data-demo="fhn"]').forEach((root) => {
     const B = 0.8, TAU = 12.5, VR: [number, number] = [-2.6, 2.6], WR: [number, number] = [-1.0, 2.2];
-    let I = 0.2, a = 0.7;
+    let I = 0.5, a = 0.7;
     let v = -1.2, w = -0.6;
     const trail: [number, number][] = [];
     const vt: number[] = [];
@@ -96,7 +96,7 @@ import DemoFrame from '../DemoFrame.astro';
       c2.fillStyle = MEDIA.muted; c2.font = '11px Inter, system-ui, sans-serif'; c2.fillText('v(t)', 8, 14);
     }
 
-    visibleLoop(root, () => {
+    const advance = () => {
       for (let k = 0; k < 8; k++) {
         const h = 0.02;
         const f = (vv: number, ww: number) => [vv - vv ** 3 / 3 - ww + I, (vv + a - B * ww) / TAU];
@@ -105,8 +105,9 @@ import DemoFrame from '../DemoFrame.astro';
       }
       trail.push([v, w]); if (trail.length > 220) trail.shift();
       vt.push(v); if (vt.length > 600) vt.shift();
-      draw();
-    });
+    };
+    for (let k = 0; k < 600; k++) advance(); // start with a full trace on screen
+    visibleLoop(root, () => { advance(); draw(); });
     root.querySelector<HTMLCanvasElement>('.plane')!.addEventListener('click', (e) => {
       const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect();
       v = VR[0] + ((e.clientX - rect.left) / rect.width) * (VR[1] - VR[0]);

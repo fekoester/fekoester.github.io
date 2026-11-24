@@ -72,7 +72,7 @@ button, input { font: inherit; }
 
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { line-height: 1.08; letter-spacing: -0.035em; }
-h1 { font-size: clamp(3.25rem, 8vw, 7.2rem); font-weight: 720; }
+h1 { font-size: clamp(3.25rem, 8vw, 7.2rem); font-weight: 720; overflow-wrap: break-word; hyphens: auto; }
 h2 { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 680; }
 h3 { font-size: 1.35rem; font-weight: 680; }
 p { color: var(--muted); }

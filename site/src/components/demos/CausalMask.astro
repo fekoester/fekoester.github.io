@@ -31,7 +31,7 @@ const words = 'to be , or not to be : that is the question whether tis nobler in
     const words: string[] = JSON.parse(root.dataset.words || '[]');
     const T = words.length;
     let k = 4, L = 1, sel = T - 3;
-    const cv = setupCanvas(root.querySelector('canvas')!, 2.1, () => draw());
+    const cv = setupCanvas(root.querySelector('canvas')!, 1.55, () => draw());
     const toks = [...root.querySelectorAll<HTMLButtonElement>('.tok')];
 
     function draw() {

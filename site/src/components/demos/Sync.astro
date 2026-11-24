@@ -95,7 +95,7 @@ import DemoFrame from '../DemoFrame.astro';
     }
 
     newInput();
-    for (let k = 0; k < 60; k++) tick();
+    for (let k = 0; k < 260; k++) tick();
     const loop = visibleLoop(root, () => { tick(); drawTraces(); drawMat(); });
     if (reducedMotion()) loop.paused = true;
     bindRange(root, 'K', (v) => v.toFixed(2), (v) => { K = v; });

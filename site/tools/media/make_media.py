@@ -129,7 +129,7 @@ def step_videos(only: str | None) -> None:
         vf = f"scale=trunc(iw*{scale}/2)*2:trunc(ih*{scale}/2)*2:flags={flags}"
         subprocess.run(
             ["ffmpeg", "-loglevel", "error", "-y", "-i", str(src), "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-             "-crf", "24", "-preset", "slow", "-movflags", "+faststart", "-an", str(dest)],
+             "-crf", "31" if name == "pps" else "24", "-preset", "slow", "-movflags", "+faststart", "-an", str(dest)],
             check=True,
         )
         gif = Image.open(src)

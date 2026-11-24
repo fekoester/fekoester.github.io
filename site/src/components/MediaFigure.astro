@@ -6,7 +6,7 @@ const { media, hero = false, zoom = true } = Astro.props;
 const size = (sizes as Record<string, { w: number; h: number }>)[media.src] ?? { w: 1280, h: 800 };
 const framed = !media.dark && !media.video && !hero;
 ---
-<figure class:list={['mfig', media.narrow && 'narrow', framed && 'framed', media.pixel && 'pixel', hero && 'hero']}>
+<figure class:list={['mfig', media.narrow && 'narrow', media.half && 'half', framed && 'framed', media.pixel && 'pixel', hero && 'hero']}>
   <div class="mfig-media">
     {media.video ? (
       <video

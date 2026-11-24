@@ -45,7 +45,7 @@ const runDate = lastT ? new Date(lastT).toLocaleDateString('en-GB', { day: 'nume
     const latest = (snap.latest as P[]).map((p) => ({ ...p, ms: Date.parse(p.t) }));
     const fc = (snap.forecast as P[]).map((p) => ({ ...p, ms: Date.parse(p.t) }));
     let days = 5;
-    const cv = setupCanvas(root.querySelector('canvas')!, 2.3, () => draw());
+    const cv = setupCanvas(root.querySelector('canvas')!, window.innerWidth < 640 ? 1.35 : 2.3, () => draw());
     const tip = root.querySelector<HTMLElement>('.tip')!;
     let hover: number | null = null;
     const fmtT = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric' });
@@ -76,9 +76,11 @@ const runDate = lastT ? new Date(lastT).toLocaleDateString('en-GB', { day: 'nume
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       for (let v = lo; v <= hi; v += (hi - lo) / 4) { const y = Math.round(ty(v)) + 0.5; ctx.beginPath(); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y); ctx.stroke(); ctx.fillText(`${Math.round(v / 1000)} GW`, box.x - 8, y); }
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      for (let d = Math.ceil(t0 / 86400e3) * 86400e3 + 8 * 3600e3; d < t1; d += 86400e3) { // midnight Pacific ≈ 08:00 UTC
+      const every = box.w / (days + 1) < 56 ? 2 : 1; // thin out day labels on narrow screens
+      let di = 0;
+      for (let d = Math.ceil(t0 / 86400e3) * 86400e3 + 8 * 3600e3; d < t1; d += 86400e3, di++) { // midnight Pacific ≈ 08:00 UTC
         const x = tx(d); ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.stroke();
-        ctx.fillText(fmtD.format(new Date(d + 12 * 3600e3)), x + (box.w / (days + 1)) / 2, box.y + box.h + 8);
+        if (di % every === 0) ctx.fillText(fmtD.format(new Date(d + 12 * 3600e3)), x + (box.w / (days + 1)) / 2, box.y + box.h + 8);
       }
       // forecast bands
       const band = (pts: typeof fc, loK: 'lo95' | 'lo80', hiK: 'hi95' | 'hi80', color: string, alpha: number) => {
@@ -149,6 +151,7 @@ const runDate = lastT ? new Date(lastT).toLocaleDateString('en-GB', { day: 'nume
   .chart { position: relative; }
   .chart :global(.demo-canvas) { background: var(--surface-strong); border: 1px solid var(--line); cursor: crosshair; }
   .tip { position: absolute; top: 18px; width: 200px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-strong); box-shadow: var(--shadow); font-size: .8rem; display: grid; gap: 2px; pointer-events: none; }
+  .tip[hidden] { display: none; }
   .tip :global(span:first-child) { color: var(--muted); }
   .live { margin: 8px 0 0; }
   .live img { width: 100%; border-radius: 14px; border: 1px solid var(--line); background: #fff; }

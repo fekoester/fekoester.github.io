@@ -116,6 +116,8 @@ import DemoFrame from '../DemoFrame.astro';
     }
 
     let frame = 0;
+    // pre-run so the raster and R(t) start filled
+    queueMicrotask(() => { for (let f = 0; f < 500; f++) { for (let k = 0; k < 6; k++) rk4(); Rhist.push(order()); if (Rhist.length > 600) Rhist.shift(); if (f % 2 === 0) drawRasterColumn(); } drawCircle(); });
     const loop = visibleLoop(root, () => {
       for (let k = 0; k < 6; k++) rk4();
       Rhist.push(order()); if (Rhist.length > 600) Rhist.shift();

@@ -43,7 +43,7 @@ const gmax = 16;
           </div>
         </div>
       ))}
-      <div class="axis">{[0, 4, 8, 12, 16].map((v) => <span style={`left:${(v / gmax) * 100}%`}>{v}</span>)}<b>TFLOPS</b></div>
+      <div class="axis">{[0, 4, 8, 12].map((v) => <span style={`left:${(v / gmax) * 100}%`}>{v}</span>)}<b>TFLOPS</b></div>
       <p class="note">Bars span the range over the measured shapes. Ticks mark the card’s peak (≈ 7.95 TFLOPS fp32, ≈ 15.9 fp16).</p>
     </div>
 

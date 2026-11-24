@@ -30,6 +30,7 @@ export type Media = {
   source?: { label: string; href: string };
   pixel?: boolean; // crisp upscaling for pixel art
   narrow?: boolean; // tall or small figure: do not stretch to full width
+  half?: boolean; // small figure: two side by side
   dark?: boolean; // already has a dark background (no paper frame)
 };
 
@@ -350,14 +351,14 @@ export const showcase: Record<string, Showcase> = {
         alt: 'Evolved XOR network graph.',
         caption: 'An evolved XOR network. Blue connections are positive, red negative, width shows |weight|.',
         source: repo('NEAT-Implementation', 'Repository'),
-        narrow: true,
+        half: true,
       },
       {
         src: m('neat', 'double-pole-champion.webp'),
         alt: 'Evolved double-pole controller without hidden nodes.',
         caption: 'The double-pole controller needed no hidden node at all: the minimal solution NEAT’s “start small” principle is designed to find.',
         source: repo('NEAT-Implementation', 'Repository'),
-        narrow: true,
+        half: true,
       },
       {
         src: m('neat', 'viewer.webp'),
@@ -412,14 +413,8 @@ export const showcase: Record<string, Showcase> = {
         caption: 'World-Simulation, seed 2, evolving preset, 12,000 steps. Brightness is food; dots are organisms with a heading tick.',
         source: repo('World-Simulation', 'World-Simulation'),
         pixel: true,
-        narrow: true,
+        half: true,
         dark: true,
-      },
-      {
-        src: m('world-generation', 'evolution.webp'),
-        alt: 'Population, births, generation and body statistics over 150,000 steps.',
-        caption: 'Two 150,000-step runs. With 10× faster food regrowth the population grows past 1,000 and evolution runs to generation 27; with the default parameters it sits at the floor of 100, kept alive by respawns.',
-        source: repo('World-Simulation', 'World-Simulation'),
       },
       {
         src: m('world-generation', 'ants.webp'),
@@ -428,8 +423,14 @@ export const showcase: Record<string, Showcase> = {
         caption: 'Ant-Simulation, seed 4, 4,000 steps. Purple is pheromone (log scale), red is food, black is the nest. Searching ants are white, ants heading to food yellow, ants carrying food orange.',
         source: repo('Ant-Simulation', 'Ant-Simulation'),
         pixel: true,
-        narrow: true,
+        half: true,
         dark: true,
+      },
+      {
+        src: m('world-generation', 'evolution.webp'),
+        alt: 'Population, births, generation and body statistics over 150,000 steps.',
+        caption: 'Two 150,000-step runs. With 10× faster food regrowth the population grows past 1,000 and evolution runs to generation 27; with the default parameters it sits at the floor of 100, kept alive by respawns.',
+        source: repo('World-Simulation', 'World-Simulation'),
       },
       {
         src: m('world-generation', 'foraging.webp'),
