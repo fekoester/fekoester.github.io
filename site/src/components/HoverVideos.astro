@@ -1,0 +1,28 @@
+---
+// Plays a project's short video loop while its card is hovered (fine pointers only, not with reduced motion).
+---
+<script>
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (canHover && !reduced) {
+    document.querySelectorAll<HTMLElement>('[data-hover-video]').forEach((box) => {
+      const src = box.dataset.hoverVideo;
+      if (!src) return;
+      const card = box.closest('.pcard') ?? box;
+      let video: HTMLVideoElement | null = null;
+      card.addEventListener('mouseenter', () => {
+        if (!video) {
+          video = document.createElement('video');
+          Object.assign(video, { src, muted: true, loop: true, playsInline: true, preload: 'auto' });
+          video.setAttribute('aria-hidden', 'true');
+          box.insertBefore(video, box.querySelector('.pcard-badges'));
+        }
+        video.play().then(() => box.classList.add('playing')).catch(() => {});
+      });
+      card.addEventListener('mouseleave', () => {
+        box.classList.remove('playing');
+        video?.pause();
+      });
+    });
+  }
+</script>

@@ -1,31 +1,144 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
+import HoverVideos from '../../components/HoverVideos.astro';
 import { projects, categories } from '../../data/projects';
-const blurbs = {
-  Research: 'Work behind papers, or heading toward one.',
-  Software: 'Tools and systems other people can use today.',
-  Experiment: 'Architecture and learning experiments: small, fast, honest.',
-  Simulation: 'Dynamical systems, emergence and artificial life, mostly C++.',
-};
+import { publications } from '../../data/publications';
+import { categoryTitle, categoryBlurb } from '../../data/labels';
+
+const spotlight = ['llm-training-dynamics', 'reservoir-language-model']
+  .map((slug) => projects.find((p) => p.slug === slug)!)
+  .filter(Boolean);
+const rest = projects.filter((p) => !spotlight.includes(p));
+const demos = projects.filter((p) => p.demo).length;
+const counts = Object.fromEntries(categories.map((c) => [c, rest.filter((p) => p.category === c).length]));
 ---
-<BaseLayout title="Projects — Felix Köster" description="Research code, software, ML experiments and simulations by Felix Köster.">
-  <section class="section intro">
+<BaseLayout title="Projects — Felix Köster" description="Research code, software, ML experiments and simulations by Felix Köster, many with live demos that run in the browser.">
+  <section class="intro">
     <div class="container">
       <p class="kicker">Work archive</p>
       <h1>Projects</h1>
-      <p class="lede">Research code, tools, experiments and simulations. Everything listed here is open source on GitHub.</p>
+      <div class="intro-row">
+        <p class="lede">Research code, tools, experiments and simulations. Everything here is open source, and most pages have a small live demo that runs in your browser: the same equations, computed on the spot.</p>
+        <dl class="stats">
+          <div><dt>{projects.length}</dt><dd>projects</dd></div>
+          <div><dt>{demos}</dt><dd>live demos</dd></div>
+          <div><dt>{publications.length}</dt><dd>publications</dd></div>
+        </dl>
+      </div>
     </div>
   </section>
+
+  <section class="spot">
+    <div class="container">
+      <p class="kicker">Two lines of research</p>
+      <div class="spot-grid">
+        {spotlight.map((p, i) => <ProjectCard project={p} size="large" eager={i < 2} />)}
+      </div>
+    </div>
+  </section>
+
+  <div class="filterbar" id="all">
+    <div class="container">
+      <div class="chips" role="toolbar" aria-label="Filter projects by category">
+        <button class="chip active" data-filter="all" aria-pressed="true">All <span>{rest.length}</span></button>
+        {categories.map((c) => (
+          <button class="chip" data-filter={c} aria-pressed="false">{categoryTitle[c]} <span>{counts[c]}</span></button>
+        ))}
+        <button class="chip demo" data-filter="demo" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Live demos</button>
+      </div>
+    </div>
+  </div>
+
   {categories.map((cat) => (
-    <section class="section">
+    <section class="cat" data-cat={cat}>
       <div class="container">
-        <div class="section-head"><div><p class="kicker">{cat}</p><h2>{cat === 'Research' ? 'Research' : cat === 'Software' ? 'Software & tools' : cat === 'Experiment' ? 'ML experiments' : 'Simulations'}</h2></div><p>{blurbs[cat]}</p></div>
+        <div class="section-head">
+          <div><p class="kicker">{cat}</p><h2>{categoryTitle[cat]}</h2></div>
+          <p>{categoryBlurb[cat]}</p>
+        </div>
         <div class="grid three">
-          {projects.filter((p) => p.category === cat).map((project) => <ProjectCard project={project} />)}
+          {rest.filter((p) => p.category === cat).map((project) => (
+            <div class="cell" data-demo={project.demo ? 'yes' : 'no'}><ProjectCard project={project} /></div>
+          ))}
         </div>
       </div>
     </section>
   ))}
+  <HoverVideos />
 </BaseLayout>
-<style>.intro { padding-bottom: 55px; } .intro h1 { margin-bottom: 26px; }</style>
+
+<script>
+  const chips = [...document.querySelectorAll<HTMLButtonElement>('.chip')];
+  const sections = [...document.querySelectorAll<HTMLElement>('.cat')];
+  function apply(filter: string) {
+    chips.forEach((c) => {
+      const on = c.dataset.filter === filter;
+      c.classList.toggle('active', on);
+      c.setAttribute('aria-pressed', String(on));
+    });
+    sections.forEach((s) => {
+      let visible = 0;
+      s.querySelectorAll<HTMLElement>('.cell').forEach((cell) => {
+        const show = filter === 'all' || filter === s.dataset.cat || (filter === 'demo' && cell.dataset.demo === 'yes');
+        cell.hidden = !show;
+        if (show) visible++;
+      });
+      s.hidden = visible === 0;
+    });
+  }
+  chips.forEach((c) =>
+    c.addEventListener('click', () => {
+      const f = c.dataset.filter || 'all';
+      apply(f);
+      history.replaceState(null, '', f === 'all' ? location.pathname : `#${f.toLowerCase()}`);
+      document.getElementById('all')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }),
+  );
+  const initial = location.hash.slice(1);
+  const match = chips.find((c) => (c.dataset.filter || '').toLowerCase() === initial);
+  if (match) apply(match.dataset.filter!);
+</script>
+
+<style>
+  .intro { padding: 76px 0 46px; }
+  .intro h1 { margin-bottom: 26px; }
+  .intro-row { display: flex; align-items: end; justify-content: space-between; gap: 40px; }
+  .intro-row .lede { margin: 0; }
+  .stats { display: flex; gap: 34px; margin: 0; }
+  .stats div { text-align: right; }
+  .stats dt { font-size: 2.6rem; font-weight: 720; letter-spacing: -0.04em; line-height: 1; }
+  .stats dd { margin: 6px 0 0; color: var(--muted); font-size: .78rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+  .spot { padding: 20px 0 70px; }
+  .spot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .filterbar { position: sticky; top: 68px; z-index: 20; padding: 12px 0; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); scroll-margin-top: 68px; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .chip {
+    flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted);
+    font-size: .88rem; font-weight: 700; cursor: pointer; transition: all 160ms ease;
+  }
+  .chip span { color: var(--muted); font-size: .78rem; opacity: .8; }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .chip.active span { color: var(--bg); }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: #3fbf77; opacity: 1; }
+  .cat { padding: 64px 0 18px; }
+  .cat[hidden], .cell[hidden] { display: none; }
+  .cat + .cat { border-top: 1px solid var(--line); margin-top: 46px; }
+  .cell { display: flex; }
+  .cell > :global(*) { flex: 1; }
+  .page :global(.cat:last-of-type) { padding-bottom: 90px; }
+  @media (max-width: 900px) {
+    .intro-row { flex-direction: column; align-items: start; }
+    .stats div { text-align: left; }
+  }
+  @media (max-width: 780px) {
+    .spot-grid { grid-template-columns: 1fr; }
+    .filterbar { top: 106px; scroll-margin-top: 106px; }
+    .stats dt { font-size: 2rem; }
+  }
+  @media (min-width: 781px) and (max-width: 1060px) {
+    .cat :global(.grid.three) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>

@@ -1,0 +1,34 @@
+---
+import type { DemoKey } from '../../data/showcase';
+import Exposure from './Exposure.astro';
+import ReservoirText from './ReservoirText.astro';
+import LorenzESN from './LorenzESN.astro';
+import Memory from './Memory.astro';
+import WaveSensing from './WaveSensing.astro';
+import CausalMask from './CausalMask.astro';
+import Sync from './Sync.astro';
+import FHN from './FHN.astro';
+import Rocblas from './Rocblas.astro';
+import Power from './Power.astro';
+import PPS from './PPS.astro';
+import Oscillators from './Oscillators.astro';
+import Terrain from './Terrain.astro';
+import Evidence from './Evidence.astro';
+
+interface Props { kind: DemoKey }
+const { kind } = Astro.props;
+---
+{kind === 'exposure' && <Exposure />}
+{kind === 'reservoir-text' && <ReservoirText />}
+{kind === 'lorenz-esn' && <LorenzESN />}
+{kind === 'memory' && <Memory />}
+{kind === 'wave-sensing' && <WaveSensing />}
+{kind === 'causal-mask' && <CausalMask />}
+{kind === 'sync' && <Sync />}
+{kind === 'fhn' && <FHN />}
+{kind === 'rocblas' && <Rocblas />}
+{kind === 'power' && <Power />}
+{kind === 'pps' && <PPS />}
+{kind === 'oscillators' && <Oscillators />}
+{kind === 'terrain' && <Terrain />}
+{kind === 'evidence' && <Evidence />}

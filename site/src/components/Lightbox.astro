@@ -1,0 +1,50 @@
+---
+// One shared lightbox for figures (any [data-lightbox] button), plus autoplay of in-page video loops while visible.
+---
+<dialog class="lightbox" id="lightbox" aria-label="Figure">
+  <form method="dialog"><button class="close" aria-label="Close">✕</button></form>
+  <img alt="" />
+  <p class="lb-caption"></p>
+</dialog>
+
+<script>
+  const dlg = document.getElementById('lightbox') as HTMLDialogElement | null;
+  if (dlg) {
+    const img = dlg.querySelector('img')!;
+    const cap = dlg.querySelector('.lb-caption')!;
+    const open = (btn: HTMLElement) => {
+      img.src = btn.dataset.lightbox || '';
+      img.alt = btn.dataset.alt || '';
+      cap.textContent = btn.dataset.caption || '';
+      dlg.showModal();
+    };
+    document.querySelectorAll<HTMLElement>('[data-lightbox]').forEach((btn) => {
+      btn.addEventListener('click', () => open(btn));
+      btn.closest('.framed')?.querySelector('img')?.addEventListener('click', () => open(btn));
+    });
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  }
+
+  // Video loops: play while on screen, pause otherwise (and never autoplay with reduced motion).
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const videos = document.querySelectorAll<HTMLVideoElement>('video[data-autoplay-visible]');
+  if (reduced) {
+    videos.forEach((v) => { v.removeAttribute('autoplay'); v.pause(); v.controls = true; });
+  } else if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        const v = e.target as HTMLVideoElement;
+        if (e.isIntersecting) { v.preload = 'auto'; v.play().catch(() => {}); } else v.pause();
+      });
+    }, { threshold: 0.25 });
+    videos.forEach((v) => io.observe(v));
+  }
+</script>
+
+<style>
+  .lightbox { max-width: min(1400px, 94vw); max-height: 94vh; padding: 18px; border: 0; border-radius: 18px; background: #fbfaf7; color: #171816; box-shadow: 0 30px 120px rgba(0,0,0,.5); }
+  .lightbox::backdrop { background: rgba(8, 10, 9, .78); backdrop-filter: blur(4px); }
+  .lightbox img { display: block; max-width: 100%; max-height: calc(94vh - 120px); margin: 0 auto; object-fit: contain; }
+  .lb-caption { margin: 12px 4px 0; color: #4d504a; font-size: .92rem; max-width: 900px; }
+  .close { position: absolute; right: 12px; top: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); background: #fff; cursor: pointer; font-size: 1rem; z-index: 2; }
+</style>

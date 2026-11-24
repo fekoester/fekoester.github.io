@@ -1,0 +1,93 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+
+// An invented example passage and cards, to show the verification rule. Not from a real paper.
+const passage = `We train echo state networks with 200 nodes on the Mackey–Glass series. With a ridge readout, the one-step normalised error on the held-out segment is 0.031. Raising the spectral radius above 1.1 made the closed-loop forecast diverge in four of five seeds. All runs use five random seeds and the same input scaling.`;
+const cards = [
+  { claim: 'The reservoir has 200 nodes.', quote: 'echo state networks with 200 nodes' },
+  { claim: 'One-step test error is 0.031.', quote: 'the one-step normalised error on the held-out segment is 0.031' },
+  { claim: 'Large spectral radii destabilise forecasting.', quote: 'a spectral radius above 1.1 always makes the forecast diverge' },
+  { claim: 'Results average five seeds.', quote: 'All runs use five random seeds' },
+];
+---
+<DemoFrame title="No quote, no claim" note="Interactive example">
+  <div slot="intro">
+    <p>PaperForge asks an LLM for structured knowledge cards, and every card must carry a verbatim quote from the page as evidence. The check is deliberately dumb: is the quote really in the source text? Paraphrases and invented quotes are rejected. Edit a quote to try it.</p>
+  </div>
+  <div class="ev" data-demo="evidence">
+    <div class="source">
+      <p class="kicker">Source page (example passage, invented for this demo)</p>
+      <p class="text" data-text={passage}>{passage}</p>
+    </div>
+    <div class="cards">
+      {cards.map((c, i) => (
+        <div class="kc" data-i={i}>
+          <div class="kc-head"><span class="claim">{c.claim}</span><span class="verdict mono"></span></div>
+          <p class="q" contenteditable="plaintext-only" spellcheck="false" aria-label="Evidence quote (editable)">{c.quote}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+  <div slot="foot"><p>Whitespace and quote marks are normalised before matching; everything else must match exactly. A rejected card is dropped, or sent back to the model.</p></div>
+</DemoFrame>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-demo="evidence"]').forEach((root) => {
+    const textEl = root.querySelector<HTMLElement>('.text')!;
+    const src = textEl.dataset.text || '';
+    const norm = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
+    const cards = [...root.querySelectorAll<HTMLElement>('.kc')];
+    let active = -1;
+
+    function render() {
+      const spans: { a: number; b: number; i: number }[] = [];
+      cards.forEach((c, i) => {
+        const q = norm(c.querySelector('.q')!.textContent || '');
+        const at = q ? norm(src).indexOf(q) : -1;
+        const ok = at >= 0 && q.length >= 8;
+        c.classList.toggle('ok', ok); c.classList.toggle('bad', !ok);
+        c.querySelector('.verdict')!.textContent = ok ? '✓ verified' : '✕ quote not in source';
+        if (ok) spans.push({ a: at, b: at + q.length, i });
+      });
+      // highlight verified quotes in the source (source has single spaces already)
+      const s = norm(src);
+      let html = '', pos = 0;
+      spans.sort((x, y) => x.a - y.a).forEach(({ a, b, i }) => {
+        if (a < pos) return;
+        html += esc(s.slice(pos, a)) + `<mark class="${i === active ? 'on' : ''}" data-i="${i}">${esc(s.slice(a, b))}</mark>`;
+        pos = b;
+      });
+      html += esc(s.slice(pos));
+      textEl.innerHTML = html;
+    }
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    cards.forEach((c, i) => {
+      c.querySelector('.q')!.addEventListener('input', render);
+      c.addEventListener('mouseenter', () => { active = i; render(); });
+      c.addEventListener('mouseleave', () => { active = -1; render(); });
+    });
+    render();
+  });
+</script>
+
+<style>
+  .ev { display: grid; gap: 16px; }
+  .source { padding: 18px 20px; border-radius: 14px; background: var(--surface-strong); border: 1px solid var(--line); }
+  .source .kicker { margin-bottom: 8px; }
+  .text { margin: 0; color: var(--text); font-family: Georgia, 'Times New Roman', serif; font-size: 1.05rem; line-height: 1.7; }
+  .text :global(mark) { background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; transition: background 150ms; }
+  .text :global(mark.on) { background: color-mix(in srgb, var(--amber) 45%, transparent); }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kc { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); transition: border-color 150ms; }
+  .kc.ok { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+  .kc.bad { border-color: color-mix(in srgb, var(--coral) 70%, var(--line)); background: color-mix(in srgb, var(--coral) 7%, var(--surface)); }
+  .kc-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .claim { font-weight: 700; font-size: .95rem; }
+  .verdict { font-size: .72rem; white-space: nowrap; }
+  .ok .verdict { color: var(--accent); }
+  .bad .verdict { color: var(--coral); }
+  .q { margin: 8px 0 0; padding: 6px 8px; border-radius: 8px; border: 1px dashed var(--line); font-family: Georgia, serif; font-style: italic; font-size: .92rem; color: var(--text); outline: none; }
+  .q:focus { border-color: var(--accent); }
+  .q::before { content: '“'; } .q::after { content: '”'; }
+  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+</style>

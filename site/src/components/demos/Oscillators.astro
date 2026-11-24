@@ -1,0 +1,139 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+---
+<DemoFrame title="Turn up the coupling until they lock">
+  <div slot="intro">
+    <p>Fifty active rotators with natural parameters b<sub>i</sub> spread around 2, all coupled to all (normalised by degree). At ε = 0 each runs at its own frequency. Raise ε and they pull each other into a common rhythm. Push the spread of b below 1 and some oscillators fall below the SNIPER bifurcation: they stop, excitable, until the others drag them along.</p>
+  </div>
+  <div class="osc" data-demo="oscillators">
+    <div class="demo-controls">
+      <label>coupling ε <input type="range" name="eps" id="os-e" min="0" max="1.5" step="0.01" value="0.6" /><output for="os-e"></output></label>
+      <label>mean b <input type="range" name="b" id="os-b" min="0.6" max="3" step="0.01" value="2" /><output for="os-b"></output></label>
+      <label>spread of b <input type="range" name="spread" id="os-s" min="0" max="1" step="0.01" value="0.3" /><output for="os-s"></output></label>
+      <button class="demo-btn" data-act="scramble">Scramble phases</button>
+    </div>
+    <div class="panes">
+      <canvas class="demo-canvas circle" aria-label="Oscillator phases on the unit circle"></canvas>
+      <canvas class="demo-canvas raster" aria-label="Space-time plot of x_i(t) and the order parameter R(t)"></canvas>
+    </div>
+    <div class="demo-readout"><span>order parameter R = <b class="R">–</b></span><span class="hint">colour: natural frequency, slow (blue) to fast (amber)</span></div>
+  </div>
+  <div slot="foot"><p>RK4 with step 0.01, the repository’s right-hand side without the delayed-feedback term. Even incoherent SNIPER networks have R ≈ 0.3, because the oscillators linger near φ = 0.</p></div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, bindRange, visibleLoop, rng, MEDIA, reducedMotion } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="oscillators"]').forEach((root) => {
+    const N = 50, DT = 0.01;
+    let eps = 0.6, bMean = 2, spread = 0.3, seed = 1;
+    let s = new Float64Array(2 * N), b = new Float64Array(N);
+    const Rhist: number[] = [];
+    const circ = setupCanvas(root.querySelector<HTMLCanvasElement>('.circle')!, 1, () => drawCircle());
+    const ras = setupCanvas(root.querySelector<HTMLCanvasElement>('.raster')!, 1.75, () => { col = 0; clearRaster(); });
+    let col = 0;
+
+    const setB = () => { for (let i = 0; i < N; i++) b[i] = bMean - spread + (2 * spread * i) / (N - 1); };
+    function scramble() {
+      const R = rng(seed++);
+      for (let i = 0; i < N; i++) { const t = R.next() * 6.283; s[i] = Math.cos(t); s[N + i] = Math.sin(t); }
+    }
+    setB(); scramble();
+
+    function f(st: Float64Array, out: Float64Array) {
+      let sx = 0, sy = 0;
+      for (let i = 0; i < N; i++) { sx += st[i]; sy += st[N + i]; }
+      const k = eps / (N - 1);
+      for (let i = 0; i < N; i++) {
+        const x = st[i], y = st[N + i], r2 = x * x + y * y;
+        out[i] = x * (1 - r2) + y * (x - b[i]) + k * (sx - N * x);
+        out[N + i] = y * (1 - r2) - x * (x - b[i]) + k * (sy - N * y);
+      }
+    }
+    const k1 = new Float64Array(2 * N), k2 = new Float64Array(2 * N), k3 = new Float64Array(2 * N), k4 = new Float64Array(2 * N), tmp = new Float64Array(2 * N);
+    function rk4() {
+      f(s, k1);
+      for (let i = 0; i < 2 * N; i++) tmp[i] = s[i] + (DT / 2) * k1[i]; f(tmp, k2);
+      for (let i = 0; i < 2 * N; i++) tmp[i] = s[i] + (DT / 2) * k2[i]; f(tmp, k3);
+      for (let i = 0; i < 2 * N; i++) tmp[i] = s[i] + DT * k3[i]; f(tmp, k4);
+      for (let i = 0; i < 2 * N; i++) s[i] += (DT / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+    }
+    const order = () => {
+      let cx = 0, cy = 0;
+      for (let i = 0; i < N; i++) { const p = Math.atan2(s[N + i], s[i]); cx += Math.cos(p); cy += Math.sin(p); }
+      return Math.hypot(cx, cy) / N;
+    };
+    const colorOf = (i: number) => {
+      const t = i / (N - 1);
+      const c0 = [127, 176, 216], c1 = [227, 168, 87];
+      return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * t)).join(',')})`;
+    };
+
+    function drawCircle() {
+      const { ctx, w, h } = circ;
+      if (!w) return;
+      ctx.fillStyle = MEDIA.bg; ctx.fillRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, rad = w * 0.36;
+      ctx.strokeStyle = MEDIA.grid; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 6.283); ctx.stroke();
+      // the slow region near φ = 0 for b close to 1
+      ctx.fillStyle = MEDIA.muted; ctx.font = '11px Inter, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('φ = 0', cx + rad + 8, cy + 4);
+      let mx = 0, my = 0;
+      for (let i = 0; i < N; i++) {
+        const p = Math.atan2(s[N + i], s[i]);
+        mx += Math.cos(p); my += Math.sin(p);
+        ctx.fillStyle = colorOf(i);
+        ctx.beginPath(); ctx.arc(cx + rad * Math.cos(p), cy - rad * Math.sin(p), 6, 0, 6.283); ctx.fill();
+      }
+      mx /= N; my /= N;
+      ctx.strokeStyle = MEDIA.text; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + rad * mx, cy - rad * my); ctx.stroke();
+      ctx.fillStyle = MEDIA.text; ctx.beginPath(); ctx.arc(cx + rad * mx, cy - rad * my, 4, 0, 6.283); ctx.fill();
+      ctx.fillStyle = MEDIA.muted; ctx.textAlign = 'center'; ctx.fillText('mean field R·e^{iψ}', cx, h - 12);
+    }
+    function clearRaster() { const { ctx, w, h } = ras; ctx.fillStyle = MEDIA.bg; ctx.fillRect(0, 0, w, h); }
+    function drawRasterColumn() {
+      const { ctx, w, h } = ras;
+      if (!w) return;
+      const top = h * 0.72, rowH = top / N, cwid = 2;
+      if ((col + 1) * cwid > w) {
+        const ratio = ctx.canvas.width / w;
+        const img = ctx.getImageData(Math.round(cwid * ratio), 0, ctx.canvas.width - Math.round(cwid * ratio), ctx.canvas.height);
+        ctx.putImageData(img, 0, 0);
+        col = Math.floor(w / cwid) - 1;
+      }
+      ctx.fillStyle = MEDIA.bg; ctx.fillRect(col * cwid, 0, cwid, h);
+      for (let i = 0; i < N; i++) {
+        const v = Math.max(-1, Math.min(1, s[i]));
+        ctx.fillStyle = v >= 0 ? `rgba(227,168,87,${v.toFixed(3)})` : `rgba(127,176,216,${(-v).toFixed(3)})`;
+        ctx.fillRect(col * cwid, i * rowH, cwid, rowH + 0.5);
+      }
+      const R = Rhist[Rhist.length - 1] ?? 0;
+      const y0 = h - 10, y1 = top + 14;
+      ctx.fillStyle = MEDIA.mint;
+      ctx.fillRect(col * cwid, y0 - (y0 - y1) * R, cwid, 2);
+      ctx.fillStyle = MEDIA.muted; ctx.font = '11px Inter, system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('R(t)', 6, top + 12);
+      col++;
+    }
+
+    let frame = 0;
+    const loop = visibleLoop(root, () => {
+      for (let k = 0; k < 6; k++) rk4();
+      Rhist.push(order()); if (Rhist.length > 600) Rhist.shift();
+      if (frame++ % 2 === 0) drawRasterColumn();
+      drawCircle();
+      root.querySelector('.R')!.textContent = Rhist[Rhist.length - 1].toFixed(2);
+    });
+    if (reducedMotion()) loop.paused = true;
+    bindRange(root, 'eps', (v) => v.toFixed(2), (v) => { eps = v; });
+    bindRange(root, 'b', (v) => v.toFixed(2), (v) => { bMean = v; setB(); });
+    bindRange(root, 'spread', (v) => `± ${v.toFixed(2)}`, (v) => { spread = v; setB(); });
+    root.querySelector('[data-act="scramble"]')!.addEventListener('click', scramble);
+  });
+</script>
+
+<style>
+  .osc { display: grid; gap: 14px; }
+  .panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr); gap: 12px; align-items: start; }
+  .hint { font-size: .8rem; }
+  @media (max-width: 680px) { .panes { grid-template-columns: 1fr; } }
+</style>

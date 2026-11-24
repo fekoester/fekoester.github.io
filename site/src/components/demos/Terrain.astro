@@ -1,0 +1,124 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+---
+<DemoFrame title="Generate a continent">
+  <div slot="intro">
+    <p>The first stage of a world generator like PWG: layered (fractal) noise for height, a falloff that pulls the edges under the sea, and a second noise field for moisture. Biomes follow from height and moisture. Every seed gives a different world; the same seed always gives the same one.</p>
+  </div>
+  <div class="terrain" data-demo="terrain">
+    <div class="demo-controls">
+      <button class="demo-btn primary" data-act="seed">New world</button>
+      <label>sea level <input type="range" name="sea" id="tr-sea" min="-0.4" max="0.5" step="0.01" value="0" /><output for="tr-sea"></output></label>
+      <label>roughness <input type="range" name="rough" id="tr-r" min="0.35" max="0.7" step="0.01" value="0.52" /><output for="tr-r"></output></label>
+      <label>moisture <input type="range" name="wet" id="tr-w" min="-0.6" max="0.6" step="0.01" value="0" /><output for="tr-w"></output></label>
+    </div>
+    <canvas class="demo-canvas" aria-label="Generated terrain map"></canvas>
+    <div class="demo-readout">
+      <span>seed <b class="seed">–</b></span>
+      <span>land <b class="land">–</b></span>
+      <span class="legend">
+        <span><span class="legend-dot" style="background:#1d4b5c"></span>sea</span>
+        <span><span class="legend-dot" style="background:#c9b98a"></span>beach</span>
+        <span><span class="legend-dot" style="background:#b59a62"></span>dry</span>
+        <span><span class="legend-dot" style="background:#7fa46a"></span>grass</span>
+        <span><span class="legend-dot" style="background:#3e6b4b"></span>forest</span>
+        <span><span class="legend-dot" style="background:#7d7a70"></span>rock</span>
+        <span><span class="legend-dot" style="background:#eef1ea"></span>snow</span>
+      </span>
+    </div>
+  </div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, bindRange, rng } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="terrain"]').forEach((root) => {
+    const GW = 320, GH = 200;
+    let seed = 42, sea = 0, rough = 0.52, wet = 0;
+    const cv = setupCanvas(root.querySelector('canvas')!, GW / GH, () => paint());
+    const off = document.createElement('canvas'); off.width = GW; off.height = GH;
+    const octx = off.getContext('2d')!;
+    let height = new Float32Array(GW * GH), moist = new Float32Array(GW * GH);
+
+    function perlin(s: number) {
+      const R = rng(s);
+      const p = new Uint8Array(512);
+      const perm = Array.from({ length: 256 }, (_, i) => i);
+      for (let i = 255; i > 0; i--) { const j = Math.floor(R.next() * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]]; }
+      for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
+      const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+      const grad = (h: number, x: number, y: number) => { const g = h & 7; const u = g < 4 ? x : y, v = g < 4 ? y : x; return ((g & 1) ? -u : u) + ((g & 2) ? -2 * v : 2 * v); };
+      return (x: number, y: number) => {
+        const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+        x -= Math.floor(x); y -= Math.floor(y);
+        const u = fade(x), v = fade(y);
+        const a = p[X] + Y, b = p[X + 1] + Y;
+        const l1 = grad(p[a], x, y) + u * (grad(p[b], x - 1, y) - grad(p[a], x, y));
+        const l2 = grad(p[a + 1], x, y - 1) + u * (grad(p[b + 1], x - 1, y - 1) - grad(p[a + 1], x, y - 1));
+        return (l1 + v * (l2 - l1)) * 0.5;
+      };
+    }
+
+    function generate() {
+      const n1 = perlin(seed), n2 = perlin(seed * 31 + 7);
+      for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+        let amp = 1, freq = 3 / GH, hgt = 0, m = 0;
+        for (let o = 0; o < 7; o++) { hgt += amp * n1(i * freq, j * freq); amp *= rough; freq *= 2; }
+        amp = 1; freq = 2.2 / GH;
+        for (let o = 0; o < 4; o++) { m += amp * n2(i * freq + 50, j * freq + 50); amp *= 0.5; freq *= 2; }
+        const dx = (i - GW / 2) / (GW / 2), dy = (j - GH / 2) / (GH / 2);
+        const d = Math.min(1.4, Math.hypot(dx, dy * 1.1));
+        height[j * GW + i] = hgt * 1.25 + 0.42 - 0.95 * d * d;
+        moist[j * GW + i] = m * 1.6;
+      }
+      root.querySelector('.seed')!.textContent = String(seed);
+      paint();
+    }
+
+    const hex = (c: string) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+    const C = { deep: hex('#0e2433'), shallow: hex('#1d4b5c'), sand: hex('#c9b98a'), grass: hex('#7fa46a'), forest: hex('#3e6b4b'), dry: hex('#b59a62'), rock: hex('#7d7a70'), snow: hex('#eef1ea') };
+
+    function paint() {
+      if (!cv.w) return;
+      const img = octx.createImageData(GW, GH);
+      let land = 0;
+      for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+        const k = j * GW + i, hgt = height[k] - sea;
+        let c: number[];
+        if (hgt < 0) {
+          const t = Math.min(1, -hgt / 0.35);
+          c = C.shallow.map((v, q) => v + (C.deep[q] - v) * t);
+        } else {
+          land++;
+          const m = moist[k] + wet;
+          if (hgt < 0.025) c = C.sand;
+          else if (hgt < 0.32) c = m > 0.25 ? C.forest : m < -0.3 ? C.dry : C.grass;
+          else if (hgt < 0.48) c = C.rock;
+          else c = C.snow;
+          // hillshade from the height gradient (light from the north-west)
+          const hx = height[k + (i < GW - 1 ? 1 : 0)] - height[k - (i > 0 ? 1 : 0)];
+          const hy = height[k + (j < GH - 1 ? GW : 0)] - height[k - (j > 0 ? GW : 0)];
+          const sh = Math.max(0.6, Math.min(1.35, 1 - 6 * (hx + hy)));
+          c = c.map((v) => Math.min(255, v * sh));
+        }
+        img.data.set([c[0], c[1], c[2], 255], k * 4);
+      }
+      octx.putImageData(img, 0, 0);
+      const { ctx, w, h } = cv;
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(off, 0, 0, w, h);
+      root.querySelector('.land')!.textContent = `${Math.round((100 * land) / (GW * GH))} %`;
+    }
+
+    bindRange(root, 'sea', (v) => v.toFixed(2), (v) => { sea = v; paint(); });
+    bindRange(root, 'rough', (v) => v.toFixed(2), (v) => { rough = v; generate(); });
+    bindRange(root, 'wet', (v) => (v > 0 ? '+' : '') + v.toFixed(2), (v) => { wet = v; paint(); });
+    root.querySelector('[data-act="seed"]')!.addEventListener('click', () => { seed = Math.floor(Math.random() * 99999); generate(); });
+    generate();
+  });
+</script>
+
+<style>
+  .terrain { display: grid; gap: 14px; }
+  .legend { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+</style>

@@ -57,3 +57,6 @@ UserSettings/
 wandb/
 runs/
 checkpoints/
+
+# site media: short video loops are part of the published site
+!public/media/**/*.mp4

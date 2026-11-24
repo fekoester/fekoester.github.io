@@ -1,0 +1,113 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+
+// Numbers from the repository README (RX 5700, torch 2.15.0+rocm10.2.0).
+const gemm = [
+  { name: 'fp32, transformer shapes', stock: [4.7, 6.3], tuned: [7.2, 7.9], peak: 7.95 },
+  { name: 'fp16, fp32 accumulation', stock: [0.03, 4.8], tuned: [5.3, 6.6], peak: 15.9 },
+  { name: 'fp16, fp16 accumulation (hgemm)', stock: null, tuned: [15, 15.8], peak: 15.9 },
+];
+const tokens = [
+  { name: '4.3M params (d256, 4 layers)', stock: 92, tuned: 156, fp16: 182 },
+  { name: '12.3M params (d384, 6 layers)', stock: 42, tuned: 64, fp16: 85 },
+  { name: '27.6M params (d512, 8 layers)', stock: 18, tuned: 27, fp16: 35 },
+];
+const gmax = 16;
+---
+<DemoFrame title="Stock vs tuned rocBLAS on an RX 5700" note="Measured numbers, interactive chart">
+  <div slot="intro">
+    <p>Throughput of matrix multiplies, and what that does to training a small GPT on TinyStories. The stock library falls back to generic kernels on gfx1010; the tuned one uses RDNA2’s own kernels rebuilt for this card. Results match stock to ~1e-6 (fp32).</p>
+  </div>
+  <div class="rb" data-demo="rocblas">
+    <div class="seg" role="tablist">
+      <button class="demo-btn on" role="tab" aria-selected="true" data-view="gemm">GEMM throughput</button>
+      <button class="demo-btn" role="tab" aria-selected="false" data-view="train">GPT training speed</button>
+    </div>
+
+    <div class="view" data-panel="gemm">
+      {gemm.map((g) => (
+        <div class="row">
+          <div class="label">{g.name}</div>
+          <div class="track">
+            <span class="peak" style={`left:${(g.peak / gmax) * 100}%`} title={`peak ≈ ${g.peak} TFLOPS`}></span>
+            {g.stock ? (
+              <span class="bar stock" style={`left:${(g.stock[0] / gmax) * 100}%;width:${((g.stock[1] - g.stock[0]) / gmax) * 100}%`}>
+                <em>stock {g.stock[0]}–{g.stock[1]}</em>
+              </span>
+            ) : (
+              <span class="bar stock slow" style="left:0;width:1.2%"><em>stock: slow fallback</em></span>
+            )}
+            <span class:list={['bar tuned', g.tuned[0] / gmax > 0.6 && 'flip']} style={`left:${(g.tuned[0] / gmax) * 100}%;width:${((g.tuned[1] - g.tuned[0]) / gmax) * 100}%`}>
+              <em>tuned {g.tuned[0]}–{g.tuned[1]}</em>
+            </span>
+          </div>
+        </div>
+      ))}
+      <div class="axis">{[0, 4, 8, 12, 16].map((v) => <span style={`left:${(v / gmax) * 100}%`}>{v}</span>)}<b>TFLOPS</b></div>
+      <p class="note">Bars span the range over the measured shapes. Ticks mark the card’s peak (≈ 7.95 TFLOPS fp32, ≈ 15.9 fp16).</p>
+    </div>
+
+    <div class="view" data-panel="train" hidden>
+      {tokens.map((t) => (
+        <div class="row">
+          <div class="label">{t.name}</div>
+          <div class="stack">
+            <span class="hbar stock" style={`width:${(t.stock / 190) * 100}%`}><em>{t.stock}k</em></span>
+            <span class="hbar tuned" style={`width:${(t.tuned / 190) * 100}%`}><em>{t.tuned}k · +{Math.round((t.tuned / t.stock - 1) * 100)} %</em></span>
+            <span class="hbar fp16" style={`width:${(t.fp16 / 190) * 100}%`}><em>{t.fp16}k</em></span>
+          </div>
+        </div>
+      ))}
+      <div class="demo-readout">
+        <span><span class="legend-dot" style="background:var(--muted)"></span>stock fp32</span>
+        <span><span class="legend-dot" style="background:var(--accent)"></span>tuned + TunableOp, fp32</span>
+        <span><span class="legend-dot" style="background:var(--amber)"></span>tuned, pure fp16</span>
+        <span>tokens per second</span>
+      </div>
+    </div>
+  </div>
+</DemoFrame>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-demo="rocblas"]').forEach((root) => {
+    const tabs = root.querySelectorAll<HTMLButtonElement>('[data-view]');
+    tabs.forEach((b) => b.addEventListener('click', () => {
+      tabs.forEach((o) => { o.classList.toggle('on', o === b); o.setAttribute('aria-selected', String(o === b)); });
+      root.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== b.dataset.view; p.classList.remove('grown'); void p.offsetWidth; p.classList.add('grown'); });
+    }));
+    new IntersectionObserver((e, obs) => { if (e[0].isIntersecting) { obs.disconnect(); root.querySelectorAll('[data-panel]').forEach((p) => p.classList.add('grown')); } }, { threshold: 0.3 }).observe(root);
+  });
+</script>
+
+<style>
+  .rb { display: grid; gap: 18px; }
+  .seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .seg .on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .view { display: grid; gap: 14px; }
+  .view[hidden] { display: none; }
+  .row { display: grid; grid-template-columns: 200px 1fr; gap: 14px; align-items: center; }
+  .label { color: var(--muted); font-size: .86rem; font-weight: 650; }
+  .track { position: relative; height: 54px; border-radius: 10px; background: color-mix(in srgb, var(--text) 5%, transparent); }
+  .peak { position: absolute; top: 4px; bottom: 4px; width: 2px; background: var(--coral); opacity: .7; }
+  .bar { position: absolute; height: 20px; border-radius: 6px; transform-origin: left; transform: scaleX(0); transition: transform 900ms cubic-bezier(.2,.8,.2,1); }
+  .grown .bar, .grown .hbar { transform: scaleX(1); }
+  .bar.stock { top: 5px; background: color-mix(in srgb, var(--muted) 60%, transparent); }
+  .bar.tuned { top: 29px; background: var(--accent); }
+  .bar em, .hbar em { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); font-style: normal; font-size: .76rem; font-weight: 700; white-space: nowrap; color: var(--text); }
+  .bar.tuned em { color: var(--accent); }
+  .bar.flip em { left: auto; right: calc(100% + 8px); }
+  .axis { position: relative; margin-left: 214px; height: 22px; color: var(--muted); font-size: .76rem; }
+  .axis span { position: absolute; transform: translateX(-50%); }
+  .axis b { position: absolute; right: 0; top: 0; font-weight: 700; }
+  .note { margin: 0; font-size: .82rem; }
+  .stack { display: grid; gap: 4px; }
+  .hbar { position: relative; display: block; height: 16px; border-radius: 5px; transform-origin: left; transform: scaleX(0); transition: transform 900ms cubic-bezier(.2,.8,.2,1); }
+  .hbar.stock { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+  .hbar.tuned { background: var(--accent); }
+  .hbar.fp16 { background: var(--amber); }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 1fr; gap: 6px; }
+    .axis { margin-left: 0; }
+    .bar.tuned em { left: auto; right: 4px; color: var(--bg); }
+  }
+</style>

@@ -1,0 +1,25 @@
+---
+interface Props { title: string; note?: string }
+const { title, note = 'Runs live in your browser' } = Astro.props;
+---
+<section class="demo card" aria-label={`Live demo: ${title}`}>
+  <header>
+    <p class="kicker"><span class="pulse" aria-hidden="true"></span>{note}</p>
+    <h3>{title}</h3>
+    <div class="intro"><slot name="intro" /></div>
+  </header>
+  <slot />
+  <div class="foot"><slot name="foot" /></div>
+</section>
+
+<style>
+  .demo { padding: 26px; margin: 8px 0 0; display: grid; gap: 18px; }
+  header h3 { margin: 0 0 8px; font-size: 1.5rem; }
+  .intro :global(p) { margin: 0; font-size: 1rem; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: #3fbf77; box-shadow: 0 0 0 0 rgba(63,191,119,.5); animation: p 2.2s infinite; }
+  @keyframes p { 70% { box-shadow: 0 0 0 7px rgba(63,191,119,0); } 100% { box-shadow: 0 0 0 0 rgba(63,191,119,0); } }
+  .foot:empty { display: none; }
+  .foot :global(p) { margin: 0; font-size: .86rem; }
+  @media (max-width: 600px) { .demo { padding: 18px; } }
+</style>

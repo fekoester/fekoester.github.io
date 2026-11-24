@@ -1,0 +1,98 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+const words = 'to be , or not to be : that is the question whether tis nobler in the mind to suffer'.split(' ');
+---
+<DemoFrame title="Two paths through every block" note="Interactive diagram">
+  <div slot="intro">
+    <p>In a causal transformer, token <i>t</i> may attend to every earlier token. CCT adds a second path: a causal convolution over the last <i>k</i> tokens, cheap and local. Stacked over <i>L</i> blocks, the convolution alone already reaches L·(k − 1) + 1 tokens back. Hover or tap a token.</p>
+  </div>
+  <div class="cm" data-demo="causal-mask" data-words={JSON.stringify(words)}>
+    <div class="demo-controls">
+      <label>kernel size k <input type="range" name="k" id="cm-k" min="1" max="8" step="1" value="4" /><output for="cm-k"></output></label>
+      <label>blocks L <input type="range" name="L" id="cm-l" min="1" max="6" step="1" value="1" /><output for="cm-l"></output></label>
+    </div>
+    <div class="tokens" role="list">
+      {words.map((w, i) => <button class="tok" role="listitem" data-i={i}>{w}</button>)}
+    </div>
+    <canvas class="demo-canvas" aria-label="Which earlier tokens each token can see through attention and through the causal convolution"></canvas>
+    <div class="demo-readout">
+      <span><span class="legend-dot" style="background:#9dc6b5"></span>attention: all earlier tokens</span>
+      <span><span class="legend-dot" style="background:#e3a857"></span>causal convolution, this block</span>
+      <span><span class="legend-dot" style="background:#d8735e"></span>reach of the convolutions after L blocks</span>
+      <span class="reach"></span>
+    </div>
+  </div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, bindRange, MEDIA } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="causal-mask"]').forEach((root) => {
+    const words: string[] = JSON.parse(root.dataset.words || '[]');
+    const T = words.length;
+    let k = 4, L = 1, sel = T - 3;
+    const cv = setupCanvas(root.querySelector('canvas')!, 2.1, () => draw());
+    const toks = [...root.querySelectorAll<HTMLButtonElement>('.tok')];
+
+    function draw() {
+      const { ctx, w, h } = cv;
+      if (!w) return;
+      ctx.fillStyle = MEDIA.bg; ctx.fillRect(0, 0, w, h);
+      const pad = 14, cell = Math.min((w - 2 * pad) / T, (h - 2 * pad) / T * 1.0);
+      const gx = (w - cell * T) / 2, gy = (h - cell * T) / 2;
+      const reach = L * (k - 1) + 1;
+      for (let i = 0; i < T; i++) for (let j = 0; j < T; j++) {
+        const x = gx + j * cell, y = gy + i * cell;
+        let col = 'rgba(238,241,234,0.04)';
+        if (j <= i) {
+          const d = i - j;
+          if (d < k) col = MEDIA.amber;
+          else if (d < reach) col = 'rgba(216,115,94,0.55)';
+          else col = 'rgba(157,198,181,0.22)';
+        }
+        const a = i === sel ? 1 : 0.5;
+        ctx.globalAlpha = j <= i ? a : 1;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.roundRect(x + 1.5, y + 1.5, cell - 3, cell - 3, Math.min(5, cell / 5)); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = MEDIA.text; ctx.lineWidth = 1.5;
+      ctx.strokeRect(gx + 0.5, gy + sel * cell + 0.5, cell * T - 1, cell - 1);
+      ctx.fillStyle = MEDIA.muted; ctx.font = '11px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'right'; ctx.fillText('query (token t) ↓', gx - 6, gy + 10);
+      ctx.textAlign = 'left'; ctx.fillText('keys (earlier tokens) →', gx, gy - 4 > 10 ? gy - 4 : 11);
+      toks.forEach((b, i) => {
+        const d = sel - i;
+        b.className = 'tok' + (i === sel ? ' sel' : d >= 0 && d < k ? ' conv' : d >= 0 && d < reach ? ' reach' : d > 0 ? ' att' : ' fut');
+      });
+      root.querySelector('.reach')!.textContent = `convolutions reach ${Math.min(reach, sel + 1)} of ${sel + 1} tokens; attention reaches all ${sel + 1}`;
+    }
+
+    toks.forEach((b, i) => {
+      b.addEventListener('mouseenter', () => { sel = i; draw(); });
+      b.addEventListener('focus', () => { sel = i; draw(); });
+      b.addEventListener('click', () => { sel = i; draw(); });
+    });
+    const canvas = root.querySelector('canvas')!;
+    canvas.addEventListener('pointermove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      const cell = Math.min((r.width - 28) / T, (r.height - 28) / T);
+      const gy = (r.height - cell * T) / 2;
+      const i = Math.floor((e.clientY - r.top - gy) / cell);
+      if (i >= 0 && i < T && i !== sel) { sel = i; draw(); }
+    });
+    bindRange(root, 'k', (v) => String(v), (v) => { k = v; draw(); });
+    bindRange(root, 'L', (v) => String(v), (v) => { L = v; draw(); });
+  });
+</script>
+
+<style>
+  .cm { display: grid; gap: 14px; }
+  .tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tok { padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-strong); color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; font-size: .86rem; cursor: pointer; transition: all 120ms ease; }
+  .tok.sel { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .tok.conv { background: #e3a857; color: #171816; border-color: #e3a857; }
+  .tok.reach { background: color-mix(in srgb, #d8735e 45%, transparent); color: var(--text); border-color: #d8735e; }
+  .tok.att { color: var(--text); border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); }
+  .tok.fut { opacity: .45; }
+</style>

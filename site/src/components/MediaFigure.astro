@@ -1,0 +1,50 @@
+---
+import type { Media } from '../data/showcase';
+import sizes from '../data/media-sizes.json';
+interface Props { media: Media; hero?: boolean; zoom?: boolean }
+const { media, hero = false, zoom = true } = Astro.props;
+const size = (sizes as Record<string, { w: number; h: number }>)[media.src] ?? { w: 1280, h: 800 };
+const framed = !media.dark && !media.video && !hero;
+---
+<figure class:list={['mfig', media.narrow && 'narrow', framed && 'framed', media.pixel && 'pixel', hero && 'hero']}>
+  <div class="mfig-media">
+    {media.video ? (
+      <video
+        src={media.video} poster={media.src} width={size.w} height={size.h}
+        muted loop playsinline autoplay={hero} preload={hero ? 'auto' : 'none'}
+        data-autoplay-visible aria-label={media.alt}
+      ></video>
+    ) : (
+      <img src={media.src} width={size.w} height={size.h} alt={media.alt} loading={hero ? 'eager' : 'lazy'} decoding="async" />
+    )}
+    {zoom && !media.video && (
+      <button class="zoom" type="button" data-lightbox={media.src} data-alt={media.alt} data-caption={media.caption ?? ''} aria-label="Enlarge figure">⤢</button>
+    )}
+  </div>
+  {(media.caption || media.source) && (
+    <figcaption>
+      {media.caption}
+      {media.source && <> <a class="src" href={media.source.href}>{media.source.label} ↗</a></>}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .mfig { margin: 0; }
+  .mfig-media { position: relative; border-radius: 16px; overflow: hidden; background: var(--media-bg); border: 1px solid var(--line); }
+  .framed .mfig-media { background: var(--figure-bg); padding: 14px; }
+  .mfig img, .mfig video { display: block; width: 100%; height: auto; }
+  .pixel img, .pixel video { image-rendering: pixelated; }
+  .narrow { max-width: 680px; }
+  .zoom {
+    position: absolute; right: 10px; top: 10px; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.9); color: #171816; cursor: zoom-in;
+    font-size: 1rem; opacity: 0; transition: opacity 160ms ease;
+  }
+  .mfig-media:hover .zoom, .zoom:focus-visible { opacity: 1; }
+  .framed .mfig-media { cursor: zoom-in; }
+  figcaption { margin-top: 10px; color: var(--muted); font-size: .9rem; line-height: 1.55; max-width: 760px; }
+  .src { color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .hero .mfig-media { border-radius: 22px; box-shadow: var(--shadow); }
+  @media (hover: none) { .zoom { opacity: .85; } }
+</style>

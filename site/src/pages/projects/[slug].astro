@@ -1,43 +1,103 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { projects } from '../../data/projects';
+import { categoryLabel } from '../../data/labels';
 import Math from '../../components/Math.astro';
+import MediaFigure from '../../components/MediaFigure.astro';
+import Lightbox from '../../components/Lightbox.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import HoverVideos from '../../components/HoverVideos.astro';
+import Demo from '../../components/demos/Demo.astro';
 
 export function getStaticPaths() {
-  return projects.map((project) => ({ params: { slug: project.slug }, props: { project } }));
+  return projects.map((project, i) => ({
+    params: { slug: project.slug },
+    props: { project, prev: projects[(i - 1 + projects.length) % projects.length], next: projects[(i + 1) % projects.length] },
+  }));
 }
-const { project } = Astro.props;
+const { project, prev, next } = Astro.props;
+const hero = project.hero ?? { src: project.cover, alt: project.coverAlt };
+const toc = [
+  { id: 'overview', label: 'Overview' },
+  project.demo && { id: 'demo', label: 'Live demo' },
+  project.equations && { id: 'math', label: 'The math' },
+  project.figures?.length && { id: 'results', label: 'Results & media' },
+  project.caveats && { id: 'caveats', label: 'Caveats' },
+].filter(Boolean) as { id: string; label: string }[];
 ---
 <BaseLayout title={`${project.title} — Felix Köster`} description={project.summary}>
   <section class="project-hero">
     <div class="container">
       <a class="back" href="/projects">← All projects</a>
-      <div class="meta mono"><span>{project.eyebrow}</span><span>{project.year}</span><span>{project.status}</span></div>
-      <h1>{project.title}</h1>
-      <p class="lede">{project.summary}</p>
-      {project.links && <div class="button-row">{project.links.map((link) => <a class="button" href={link.href}>{link.label} ↗</a>)}</div>}
+      <div class="hero-grid">
+        <div class="hero-text">
+          <div class="meta mono"><span>{categoryLabel[project.category]}</span><span>{project.year}</span><span class="status" data-status={project.status}>{project.status}</span></div>
+          <h1>{project.title}</h1>
+          <p class="lede">{project.summary}</p>
+          {project.links && <div class="button-row">{project.links.map((link, i) => <a class:list={['button', i === 0 && 'primary']} href={link.href}>{link.label} ↗</a>)}</div>}
+        </div>
+        <div class="hero-media">
+          <MediaFigure media={hero} hero zoom={false} />
+        </div>
+      </div>
+      {project.facts && (
+        <div class="facts">
+          <dl>
+            {project.facts.map((f) => <div class="fact"><dt>{f.value}</dt><dd>{f.label}</dd></div>)}
+          </dl>
+          {project.factsNote && <p class="facts-note">{project.factsNote}</p>}
+        </div>
+      )}
     </div>
   </section>
-  <section class="section">
+
+  <section class="section body">
     <div class="container content-grid">
       <aside>
-        <p class="kicker">Stack / topics</p>
-        <ul class="tag-list">{project.tags.map((tag) => <li class="tag">{tag}</li>)}</ul>
+        <div class="sticky">
+          <p class="kicker">On this page</p>
+          <ol class="toc">{toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}</ol>
+          <p class="kicker">Stack / topics</p>
+          <ul class="tag-list">{project.tags.map((tag) => <li class="tag">{tag}</li>)}</ul>
+        </div>
       </aside>
       <article>
-        {project.description.map((paragraph) => <p>{paragraph}</p>)}
-        {project.equations && (
-          <div class="equations">
-            {project.equations.map((eq) => (
-              <figure class="card eq">
-                <Math tex={eq.tex} />
-                {eq.caption && <figcaption>{eq.caption}</figcaption>}
-              </figure>
-            ))}
+        <div id="overview" class="anchor prose">
+          {project.description.map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+
+        {project.demo && (
+          <div id="demo" class="anchor block">
+            <Demo kind={project.demo} />
           </div>
         )}
+
+        {project.equations && (
+          <div id="math" class="anchor block">
+            <p class="kicker">The math</p>
+            <div class="equations">
+              {project.equations.map((eq) => (
+                <figure class="card eq">
+                  <Math tex={eq.tex} />
+                  {eq.caption && <figcaption>{eq.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {project.figures && project.figures.length > 0 && (
+          <div id="results" class="anchor block">
+            <p class="kicker">Results &amp; media</p>
+            <h2 class="block-title">From the repositories</h2>
+            <div class="figures">
+              {project.figures.map((f) => <MediaFigure media={f} />)}
+            </div>
+          </div>
+        )}
+
         {project.caveats && (
-          <div class="caveats card">
+          <div id="caveats" class="anchor caveats card">
             <p class="kicker">Caveats</p>
             {project.caveats.map((c) => <p>{c}</p>)}
           </div>
@@ -51,21 +111,65 @@ const { project } = Astro.props;
       </article>
     </div>
   </section>
+
+  <section class="section more">
+    <div class="container">
+      <div class="section-head"><div><p class="kicker">Keep exploring</p><h2>More projects</h2></div><a class="button" href="/projects">All projects →</a></div>
+      <div class="grid two">
+        <div class="nav-cell"><span class="nav-label mono">← Previous</span><ProjectCard project={prev} /></div>
+        <div class="nav-cell"><span class="nav-label mono">Next →</span><ProjectCard project={next} /></div>
+      </div>
+    </div>
+  </section>
+  <Lightbox />
+  <HoverVideos />
 </BaseLayout>
+
 <style>
-  .project-hero { padding: 70px 0 80px; }
-  .back { display: inline-block; color: var(--muted); margin-bottom: 70px; font-size: .9rem; font-weight: 650; }
-  .meta { display: flex; flex-wrap: wrap; gap: 22px; color: var(--accent); font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; }
-  h1 { max-width: 950px; margin: 22px 0 28px; }
-  .content-grid { display: grid; grid-template-columns: 260px 1fr; gap: 90px; }
-  article { max-width: 760px; }
-  article > p { font-size: 1.12rem; line-height: 1.75; }
-  .highlights, .caveats { padding: 24px; margin-top: 36px; }
-  .caveats { border-color: color-mix(in srgb, #c08a2e 50%, var(--line)); }
-  .caveats p:last-child { margin-bottom: 0; }
-  .equations { display: grid; gap: 14px; margin: 36px 0; }
+  .project-hero { padding: 46px 0 40px; }
+  .back { display: inline-block; color: var(--muted); margin-bottom: 40px; font-size: .9rem; font-weight: 650; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 56px; align-items: center; }
+  .meta { display: flex; flex-wrap: wrap; gap: 18px; color: var(--accent); font-size: .76rem; text-transform: uppercase; letter-spacing: .12em; }
+  .status[data-status='Research in progress'], .status[data-status='Active'] { color: var(--amber); }
+  h1 { margin: 20px 0 24px; font-size: clamp(2.6rem, 5.4vw, 4.8rem); }
+  .hero-text .lede { font-size: clamp(1.08rem, 1.6vw, 1.3rem); }
+  .facts { margin-top: 44px; }
+  .facts dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--line); }
+  .fact { padding: 20px 22px; background: color-mix(in srgb, var(--bg) 92%, var(--accent)); }
+  .fact dt { font-size: clamp(1.6rem, 2.6vw, 2.2rem); font-weight: 720; letter-spacing: -0.03em; line-height: 1.05; }
+  .fact dd { margin: 8px 0 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+  .facts-note { margin: 12px 4px 0; font-size: .86rem; }
+  .body { padding-top: 70px; }
+  .content-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 70px; }
+  .sticky { position: sticky; top: 100px; }
+  .toc { list-style: none; margin: 0 0 34px; padding: 0; border-left: 1px solid var(--line); }
+  .toc a { display: block; padding: 5px 0 5px 14px; color: var(--muted); font-size: .92rem; font-weight: 650; }
+  .toc a:hover { color: var(--text); }
+  article { max-width: 860px; }
+  .anchor { scroll-margin-top: 96px; }
+  .prose { max-width: 760px; }
+  .prose p { font-size: 1.12rem; line-height: 1.75; color: color-mix(in srgb, var(--text) 78%, var(--muted)); }
+  .block { margin-top: 56px; }
+  .block-title { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 26px; }
+  .equations { display: grid; gap: 14px; }
   .eq { margin: 0; padding: 18px 20px; overflow-x: auto; }
-  figcaption { margin-top: 6px; color: var(--muted); font-size: .85rem; }
+  .eq figcaption { margin-top: 6px; color: var(--muted); font-size: .86rem; }
+  .figures { display: grid; gap: 44px; }
+  .highlights, .caveats { padding: 24px; margin-top: 56px; }
+  .caveats { border-color: color-mix(in srgb, var(--amber) 55%, var(--line)); background: color-mix(in srgb, var(--amber) 7%, var(--surface)); }
+  .caveats p:last-child { margin-bottom: 0; }
   .highlights ul { margin-bottom: 0; padding-left: 20px; }
-  @media (max-width: 760px) { .content-grid { grid-template-columns: 1fr; gap: 45px; } .back { margin-bottom: 45px; } }
+  .nav-cell { display: flex; flex-direction: column; gap: 10px; }
+  .nav-cell > :global(.pcard) { flex: 1; }
+  .nav-label { color: var(--muted); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; }
+  @media (max-width: 980px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 34px; }
+    .hero-media { order: -1; }
+  }
+  @media (max-width: 860px) {
+    .content-grid { grid-template-columns: 1fr; gap: 30px; }
+    aside { display: none; }
+    .back { margin-bottom: 26px; }
+    .body { padding-top: 40px; }
+  }
 </style>

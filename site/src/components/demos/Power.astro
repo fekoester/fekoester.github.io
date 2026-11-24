@@ -1,0 +1,157 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+import snap from '../../data/power-snapshot.json';
+const lastT = snap.forecast[0]?.t ?? '';
+const runDate = lastT ? new Date(lastT).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
+---
+<DemoFrame title="California’s electricity demand, forecast" note="Real data from the pipeline">
+  <div slot="intro">
+    <p>A snapshot of the daily pipeline from {runDate}: hourly CAISO demand from the EIA, the model’s out-of-sample check on the latest day (trained without it), and the next 24 hours with 80 % and 95 % conformal intervals. Hover to read values.</p>
+  </div>
+  <div class="power" data-demo="power">
+    <div class="demo-controls">
+      <div class="seg" role="group" aria-label="Time range">
+        <button class="demo-btn on" data-days="5">5 days</button>
+        <button class="demo-btn" data-days="14">14 days</button>
+      </div>
+      <div class="demo-readout">
+        <span>latest day, out of sample: MAPE <b class="mape">–</b></span>
+        <span>80 % interval covered <b class="cov">–</b> of hours</span>
+      </div>
+    </div>
+    <div class="chart">
+      <canvas class="demo-canvas" aria-label="Demand history, out-of-sample check and forecast with intervals"></canvas>
+      <div class="tip" hidden></div>
+    </div>
+    <div class="demo-readout">
+      <span><span class="legend-dot" style="background:var(--accent)"></span>actual demand</span>
+      <span><span class="legend-dot" style="background:var(--sky)"></span>out-of-sample prediction (latest day)</span>
+      <span><span class="legend-dot" style="background:var(--amber)"></span>next-24 h forecast, 80 % / 95 % bands</span>
+    </div>
+    <figure class="live">
+      <a href="https://fekoester.github.io/PowerForecastMLOps/"><img src="https://fekoester.github.io/PowerForecastMLOps/figures/future_24h_forecast.png" alt="Today's 24-hour forecast from the live dashboard" loading="lazy" /></a>
+      <figcaption>Today’s forecast, straight from the live dashboard (rebuilt every morning by GitHub Actions). <a href="https://fekoester.github.io/PowerForecastMLOps/">Open the dashboard ↗</a></figcaption>
+    </figure>
+  </div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, palette, onThemeChange } from '../../lib/demo';
+  import snap from '../../data/power-snapshot.json';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="power"]').forEach((root) => {
+    type P = { t: string; y: number; lo80?: number; hi80?: number; lo95?: number; hi95?: number; actual?: number };
+    const hist = (snap.history as P[]).map((p) => ({ ...p, ms: Date.parse(p.t) }));
+    const latest = (snap.latest as P[]).map((p) => ({ ...p, ms: Date.parse(p.t) }));
+    const fc = (snap.forecast as P[]).map((p) => ({ ...p, ms: Date.parse(p.t) }));
+    let days = 5;
+    const cv = setupCanvas(root.querySelector('canvas')!, 2.3, () => draw());
+    const tip = root.querySelector<HTMLElement>('.tip')!;
+    let hover: number | null = null;
+    const fmtT = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric' });
+    const fmtD = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' });
+
+    {
+      let ape = 0, cov = 0;
+      latest.forEach((p) => { ape += Math.abs(p.y - p.actual!) / p.actual!; if (p.actual! >= p.lo80! && p.actual! <= p.hi80!) cov++; });
+      root.querySelector('.mape')!.textContent = `${((100 * ape) / latest.length).toFixed(1)} %`;
+      root.querySelector('.cov')!.textContent = `${cov}/${latest.length}`;
+    }
+
+    let geom = { x0: 0, x1: 0, t0: 0, t1: 0 };
+    function draw() {
+      const { ctx, w, h } = cv;
+      if (!w) return;
+      const pal = palette();
+      ctx.clearRect(0, 0, w, h); ctx.fillStyle = pal.surface; ctx.fillRect(0, 0, w, h);
+      const t1 = fc[fc.length - 1].ms, t0 = t1 - (days + 1) * 86400e3;
+      const vis = hist.filter((p) => p.ms >= t0);
+      const all = [...vis.map((p) => p.y), ...fc.flatMap((p) => [p.lo95!, p.hi95!]), ...latest.flatMap((p) => [p.lo80!, p.hi80!])];
+      const lo = Math.floor(Math.min(...all) / 2000) * 2000, hi = Math.ceil(Math.max(...all) / 2000) * 2000;
+      const box = { x: 56, y: 12, w: w - 70, h: h - 44 };
+      const tx = (ms: number) => box.x + ((ms - t0) / (t1 - t0)) * box.w;
+      const ty = (v: number) => box.y + box.h - ((v - lo) / (hi - lo)) * box.h;
+      geom = { x0: box.x, x1: box.x + box.w, t0, t1 };
+      ctx.font = '12px Inter, system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (let v = lo; v <= hi; v += (hi - lo) / 4) { const y = Math.round(ty(v)) + 0.5; ctx.beginPath(); ctx.moveTo(box.x, y); ctx.lineTo(box.x + box.w, y); ctx.stroke(); ctx.fillText(`${Math.round(v / 1000)} GW`, box.x - 8, y); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let d = Math.ceil(t0 / 86400e3) * 86400e3 + 8 * 3600e3; d < t1; d += 86400e3) { // midnight Pacific ≈ 08:00 UTC
+        const x = tx(d); ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.stroke();
+        ctx.fillText(fmtD.format(new Date(d + 12 * 3600e3)), x + (box.w / (days + 1)) / 2, box.y + box.h + 8);
+      }
+      // forecast bands
+      const band = (pts: typeof fc, loK: 'lo95' | 'lo80', hiK: 'hi95' | 'hi80', color: string, alpha: number) => {
+        ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath();
+        pts.forEach((p, i) => (i ? ctx.lineTo(tx(p.ms), ty(p[hiK]!)) : ctx.moveTo(tx(p.ms), ty(p[hiK]!))));
+        [...pts].reverse().forEach((p) => ctx.lineTo(tx(p.ms), ty(p[loK]!)));
+        ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      };
+      band(fc, 'lo95', 'hi95', pal.amber, 0.14);
+      band(fc, 'lo80', 'hi80', pal.amber, 0.24);
+      band(latest, 'lo80', 'hi80', pal.sky, 0.16);
+      const path = (pts: { ms: number; v: number }[], color: string, width: number, dash: number[] = []) => {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath();
+        pts.forEach((p, i) => (i ? ctx.lineTo(tx(p.ms), ty(p.v)) : ctx.moveTo(tx(p.ms), ty(p.v)))); ctx.stroke(); ctx.setLineDash([]);
+      };
+      path(vis.map((p) => ({ ms: p.ms, v: p.y })), pal.accent, 2.2);
+      path(latest.map((p) => ({ ms: p.ms, v: p.y })), pal.sky, 2, [5, 4]);
+      path(fc.map((p) => ({ ms: p.ms, v: p.y })), pal.amber, 2.4);
+      const nowX = tx(fc[0].ms);
+      ctx.strokeStyle = pal.text; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(nowX, box.y); ctx.lineTo(nowX, box.y + box.h); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('forecast →', nowX + 6, box.y + 4);
+      // hover
+      if (hover !== null) {
+        const ms = hover;
+        const near = <T extends { ms: number }>(arr: T[]) => arr.reduce((b, p) => (Math.abs(p.ms - ms) < Math.abs(b.ms - ms) ? p : b), arr[0]);
+        const x = tx(ms);
+        ctx.strokeStyle = pal.text; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(x, box.y); ctx.lineTo(x, box.y + box.h); ctx.stroke(); ctx.globalAlpha = 1;
+        const lines: string[] = [];
+        let tt = ms;
+        if (ms >= fc[0].ms - 1800e3) {
+          const p = near(fc); tt = p.ms;
+          lines.push(`forecast <b>${(p.y / 1000).toFixed(1)} GW</b>`, `80 %: ${(p.lo80! / 1000).toFixed(1)}–${(p.hi80! / 1000).toFixed(1)} GW`);
+        } else {
+          const p = near(vis); tt = p.ms;
+          lines.push(`actual <b>${(p.y / 1000).toFixed(1)} GW</b>`);
+          const q = latest.find((l) => Math.abs(l.ms - p.ms) < 1800e3);
+          if (q) lines.push(`predicted ${(q.y / 1000).toFixed(1)} GW (${(((q.y - q.actual!) / q.actual!) * 100).toFixed(1)} %)`);
+        }
+        tip.innerHTML = `<span>${fmtT.format(new Date(tt))} PT</span>${lines.map((l) => `<span>${l}</span>`).join('')}`;
+        tip.hidden = false;
+        const left = Math.min(w - 210, Math.max(0, x + 12));
+        tip.style.left = `${left}px`;
+      } else tip.hidden = true;
+    }
+
+    const canvas = root.querySelector('canvas')!;
+    canvas.addEventListener('pointermove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      if (x < geom.x0 || x > geom.x1) { hover = null; draw(); return; }
+      hover = geom.t0 + ((x - geom.x0) / (geom.x1 - geom.x0)) * (geom.t1 - geom.t0);
+      draw();
+    });
+    canvas.addEventListener('pointerleave', () => { hover = null; draw(); });
+    root.querySelectorAll<HTMLButtonElement>('[data-days]').forEach((b) => b.addEventListener('click', () => {
+      days = Number(b.dataset.days);
+      root.querySelectorAll('[data-days]').forEach((o) => o.classList.toggle('on', o === b));
+      draw();
+    }));
+    onThemeChange(draw);
+  });
+</script>
+
+<style>
+  .power { display: grid; gap: 14px; }
+  .seg { display: inline-flex; gap: 6px; }
+  .seg .on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .chart { position: relative; }
+  .chart :global(.demo-canvas) { background: var(--surface-strong); border: 1px solid var(--line); cursor: crosshair; }
+  .tip { position: absolute; top: 18px; width: 200px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-strong); box-shadow: var(--shadow); font-size: .8rem; display: grid; gap: 2px; pointer-events: none; }
+  .tip :global(span:first-child) { color: var(--muted); }
+  .live { margin: 8px 0 0; }
+  .live img { width: 100%; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+  .live figcaption { margin-top: 8px; color: var(--muted); font-size: .86rem; }
+  .live a { color: var(--accent); font-weight: 700; }
+</style>

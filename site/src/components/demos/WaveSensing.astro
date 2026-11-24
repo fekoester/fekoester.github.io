@@ -1,0 +1,139 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+---
+<DemoFrame title="Where should you measure a field?">
+  <div slot="intro">
+    <p>A chaotic signal (Mackey–Glass) drives a 2-D medium at its centre; the medium is the reservoir. White dots are a fixed sensor grid. Drag the amber query point around. Near the source it reads a sharp, recent copy of the input; far away a delayed, smeared one. Adaptive sensing learns to move such points with the state.</p>
+  </div>
+  <div class="ws" data-demo="wave-sensing">
+    <div class="demo-controls">
+      <div class="seg" role="group" aria-label="Medium">
+        <button class="demo-btn on" data-medium="wave">Wave</button>
+        <button class="demo-btn" data-medium="diffusion">Diffusion</button>
+      </div>
+      <label>damping <input type="range" name="damp" id="ws-d" min="0" max="0.06" step="0.001" value="0.012" /><output for="ws-d"></output></label>
+    </div>
+    <div class="panes">
+      <canvas class="demo-canvas field" aria-label="Field driven by a chaotic signal, with sensors and a draggable query point"></canvas>
+      <canvas class="demo-canvas trace" aria-label="Drive signal and the value read at the query point"></canvas>
+    </div>
+    <div class="demo-readout">
+      <span><span class="legend-dot" style="background:#7fb0d8"></span>input u(t)</span>
+      <span><span class="legend-dot" style="background:#e3a857"></span>field at the query point (rescaled)</span>
+      <span>best correlation <b class="corr">–</b> at lag <b class="lag">–</b></span>
+    </div>
+  </div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, bindRange, visibleLoop, MEDIA, reducedMotion } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="wave-sensing"]').forEach((root) => {
+    const GW = 112, GH = 70, SX = 56, SY = 35;
+    let medium: 'wave' | 'diffusion' = 'wave', damp = 0.012;
+    let u = new Float32Array(GW * GH), up = new Float32Array(GW * GH), un = new Float32Array(GW * GH);
+    let q = { x: 84, y: 22 };
+    // Mackey-Glass drive (tau = 17), sampled every 1 time unit
+    const mg: number[] = [];
+    { const hist = Array(18).fill(1.2); for (let t = 0; t < 6000; t++) { const x = hist[hist.length - 1], xt = hist[hist.length - 18]; hist.push(x + 0.2 * xt / (1 + xt ** 10) - 0.1 * x); if (t > 500) mg.push(hist[hist.length - 1] - 0.9); } }
+    let tstep = 0;
+    const H = 300; // trace history
+    const drive: number[] = [], read: number[] = [];
+    const fc = setupCanvas(root.querySelector<HTMLCanvasElement>('.field')!, GW / GH, () => drawField());
+    const tc = setupCanvas(root.querySelector<HTMLCanvasElement>('.trace')!, GW / GH, () => drawTrace());
+    const off = document.createElement('canvas'); off.width = GW; off.height = GH;
+    const octx = off.getContext('2d')!;
+    const img = octx.createImageData(GW, GH);
+
+    function step() {
+      const d = mg[Math.floor(tstep / 4) % mg.length];
+      for (let j = 1; j < GH - 1; j++) for (let i = 1; i < GW - 1; i++) {
+        const k = j * GW + i;
+        const lap = u[k - 1] + u[k + 1] + u[k - GW] + u[k + GW] - 4 * u[k];
+        un[k] = medium === 'wave' ? 2 * u[k] - up[k] + 0.22 * lap - damp * (u[k] - up[k]) : u[k] + 0.2 * lap - damp * 0.3 * u[k];
+      }
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) un[(SY + dj) * GW + SX + di] += (medium === 'wave' ? 0.35 : 0.9) * d;
+      [up, u, un] = [u, un, up];
+      tstep++;
+      if (tstep % 4 === 0) {
+        drive.push(d); read.push(u[Math.round(q.y) * GW + Math.round(q.x)]);
+        if (drive.length > H) { drive.shift(); read.shift(); }
+      }
+    }
+
+    function drawField() {
+      const { ctx, w, h } = fc;
+      if (!w) return;
+      let mx = 1e-6; for (let k = 0; k < u.length; k++) mx = Math.max(mx, Math.abs(u[k]));
+      for (let k = 0; k < u.length; k++) {
+        const v = Math.max(-1, Math.min(1, u[k] / (mx * 0.7)));
+        const o = k * 4;
+        if (v >= 0) { img.data[o] = 12 + 145 * v; img.data[o + 1] = 17 + 181 * v; img.data[o + 2] = 15 + 166 * v; }
+        else { img.data[o] = 12 - 32 * v; img.data[o + 1] = 17 - 78 * v; img.data[o + 2] = 15 - 120 * v; }
+        img.data[o + 3] = 255;
+      }
+      octx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(off, 0, 0, w, h);
+      const s = w / GW;
+      ctx.fillStyle = 'rgba(238,241,234,0.75)';
+      for (let j = 7; j < GH; j += 14) for (let i = 7; i < GW; i += 14) { ctx.beginPath(); ctx.arc(i * s, j * s, 2, 0, 6.283); ctx.fill(); }
+      ctx.strokeStyle = MEDIA.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(SX * s, SY * s, 7, 0, 6.283); ctx.stroke();
+      ctx.fillStyle = MEDIA.amber; ctx.beginPath(); ctx.arc(q.x * s, q.y * s, 8, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = MEDIA.bg; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = MEDIA.muted; ctx.font = '11px Inter, system-ui, sans-serif'; ctx.fillText('source', SX * s + 10, SY * s - 8);
+    }
+
+    function drawTrace() {
+      const { ctx, w, h } = tc;
+      if (!w) return;
+      ctx.fillStyle = MEDIA.bg; ctx.fillRect(0, 0, w, h);
+      const norm = (a: number[]) => { const m = a.reduce((s, v) => s + v, 0) / (a.length || 1); const sd = Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length || 1)) || 1; return a.map((v) => (v - m) / sd); };
+      const a = norm(drive), b = norm(read);
+      const path = (arr: number[], y0: number, color: string) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.beginPath();
+        arr.forEach((v, k) => { const x = (k / (H - 1)) * w, y = y0 - v * h * 0.1; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      };
+      path(a, h * 0.28, MEDIA.sky);
+      path(b, h * 0.72, MEDIA.amber);
+      // best lagged correlation
+      let best = 0, lag = 0;
+      for (let L = 0; L < 120 && a.length > L + 40; L++) {
+        let s = 0; const n = a.length - L;
+        for (let k = 0; k < n; k++) s += a[k] * b[k + L];
+        const c = s / n; if (Math.abs(c) > Math.abs(best)) { best = c; lag = L; }
+      }
+      root.querySelector('.corr')!.textContent = best.toFixed(2);
+      root.querySelector('.lag')!.textContent = `${lag} steps`;
+      ctx.fillStyle = MEDIA.muted; ctx.font = '11px Inter, system-ui, sans-serif'; ctx.fillText('input', 8, 14); ctx.fillText('query point', 8, h * 0.5 + 14);
+    }
+
+    const canvas = root.querySelector<HTMLCanvasElement>('.field')!;
+    let dragging = false;
+    const move = (e: PointerEvent) => {
+      const r = canvas.getBoundingClientRect();
+      q = { x: Math.max(1, Math.min(GW - 2, ((e.clientX - r.left) / r.width) * GW)), y: Math.max(1, Math.min(GH - 2, ((e.clientY - r.top) / r.height) * GH)) };
+      drive.length = 0; read.length = 0;
+    };
+    canvas.addEventListener('pointerdown', (e) => { dragging = true; canvas.setPointerCapture(e.pointerId); move(e); });
+    canvas.addEventListener('pointermove', (e) => { if (dragging) move(e); });
+    canvas.addEventListener('pointerup', () => { dragging = false; });
+    root.querySelectorAll<HTMLButtonElement>('[data-medium]').forEach((b) => b.addEventListener('click', () => {
+      medium = b.dataset.medium as 'wave' | 'diffusion';
+      root.querySelectorAll('[data-medium]').forEach((o) => o.classList.toggle('on', o === b));
+      u.fill(0); up.fill(0); drive.length = 0; read.length = 0;
+    }));
+    bindRange(root, 'damp', (v) => v.toFixed(3), (v) => { damp = v; });
+    for (let k = 0; k < 400; k++) step();
+    const loop = visibleLoop(root, () => { for (let k = 0; k < 4; k++) step(); drawField(); drawTrace(); });
+    if (reducedMotion()) loop.paused = true;
+  });
+</script>
+
+<style>
+  .ws { display: grid; gap: 14px; }
+  .seg { display: inline-flex; gap: 6px; }
+  .seg .on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { cursor: grab; touch-action: none; }
+  @media (max-width: 680px) { .panes { grid-template-columns: 1fr; } }
+</style>

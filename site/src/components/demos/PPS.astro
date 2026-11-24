@@ -1,0 +1,142 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+---
+<DemoFrame title="Watch cells emerge from one motion law">
+  <div slot="intro">
+    <p>Every particle counts its neighbours within radius 5 on its left (L) and right (R), turns right by α + β·N·sign(R − L), and steps forward. Nothing else: no forces, no rules about cells. Give it a few hundred steps; nucleation is a rare event, so if nothing grows, press <b>New world</b>.</p>
+  </div>
+  <div class="pps" data-demo="pps">
+    <div class="demo-controls">
+      <label>α <input type="range" name="alpha" id="pps-a" min="0" max="360" step="1" value="180" /><output for="pps-a"></output></label>
+      <label>β <input type="range" name="beta" id="pps-b" min="0" max="40" step="0.5" value="17" /><output for="pps-b"></output></label>
+      <label>density <input type="range" name="dens" id="pps-d" min="0.04" max="0.2" step="0.01" value="0.12" /><output for="pps-d"></output></label>
+      <label>speed <input type="range" name="speed" id="pps-s" min="1" max="8" step="1" value="3" /><output for="pps-s"></output></label>
+    </div>
+    <canvas class="demo-canvas" aria-label="Primordial particle system simulation"></canvas>
+    <div class="demo-controls">
+      <button class="demo-btn primary" data-act="new">New world</button>
+      <button class="demo-btn" data-act="pause">Pause</button>
+      <button class="demo-btn" data-act="paper">Paper parameters</button>
+      <div class="demo-readout">
+        <span>step <b class="step">0</b></span>
+        <span>particles in structures <b class="cells">0</b></span>
+      </div>
+    </div>
+    <div class="demo-readout legend">
+      <span><span class="legend-dot" style="background:#9dc6b5"></span>N ≤ 12</span>
+      <span><span class="legend-dot" style="background:#a99ad6"></span>13–15</span>
+      <span><span class="legend-dot" style="background:#7fb0d8"></span>16–35</span>
+      <span><span class="legend-dot" style="background:#e3a857"></span>&gt; 35</span>
+      <span><span class="legend-dot" style="background:#d8735e"></span>&gt; 15 within r = 1.3</span>
+    </div>
+  </div>
+  <div slot="foot"><p>Parameters of Schmickl et al. (2016): r = 5, v = 0.67, α = 180°, β = 17°, on a torus. Particles here are updated simultaneously; the C++ version also offers the paper’s one-after-another update.</p></div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, bindRange, visibleLoop, rng, MEDIA, reducedMotion } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="pps"]').forEach((root) => {
+    const WW = 120, WH = 75, r = 5, r2 = 25, rc2 = 1.3 * 1.3, v = 0.67;
+    const gx = Math.floor(WW / r), gy = Math.floor(WH / r), cw = WW / gx, ch = WH / gy;
+    let alpha = 180, beta = 17, dens = 0.12, speed = 3, seed = 4, stepCount = 0;
+    let n = 0, x = new Float64Array(0), y = new Float64Array(0), phi = new Float64Array(0);
+    let cnt = new Int32Array(0), close = new Int32Array(0);
+    const cv = setupCanvas(root.querySelector('canvas')!, WW / WH, () => draw());
+    const $ = (s: string) => root.querySelector(s)!;
+
+    function reset() {
+      const R = rng(seed);
+      n = Math.round(WW * WH * dens);
+      x = new Float64Array(n).map(() => R.next() * WW);
+      y = new Float64Array(n).map(() => R.next() * WH);
+      phi = new Float64Array(n).map(() => R.next() * Math.PI * 2);
+      cnt = new Int32Array(n); close = new Int32Array(n);
+      stepCount = 0;
+      draw();
+    }
+
+    const head = new Int32Array(gx * gy), next = new Int32Array(4096 * 4);
+    function step() {
+      head.fill(-1);
+      for (let i = 0; i < n; i++) {
+        const c = (Math.floor(y[i] / ch) % gy) * gx + (Math.floor(x[i] / cw) % gx);
+        next[i] = head[c]; head[c] = i;
+      }
+      const a = (alpha * Math.PI) / 180, b = (beta * Math.PI) / 180;
+      const dphi = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        const hx = Math.cos(phi[i]), hy = Math.sin(phi[i]);
+        const cx = Math.floor(x[i] / cw), cy = Math.floor(y[i] / ch);
+        let L = 0, Rr = 0, cl = 0;
+        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+          const c = (((cy + oy) % gy + gy) % gy) * gx + (((cx + ox) % gx + gx) % gx);
+          for (let j = head[c]; j !== -1; j = next[j]) {
+            if (j === i) continue;
+            let dx = x[j] - x[i], dy = y[j] - y[i];
+            if (dx > WW / 2) dx -= WW; else if (dx < -WW / 2) dx += WW;
+            if (dy > WH / 2) dy -= WH; else if (dy < -WH / 2) dy += WH;
+            const d2 = dx * dx + dy * dy;
+            if (d2 > r2) continue;
+            if (hx * dy - hy * dx >= 0) L++; else Rr++;
+            if (d2 <= rc2) cl++;
+          }
+        }
+        const N = L + Rr;
+        cnt[i] = N; close[i] = cl;
+        dphi[i] = a + b * N * Math.sign(Rr - L);
+      }
+      for (let i = 0; i < n; i++) {
+        phi[i] -= dphi[i]; // a right turn decreases the angle (y up)
+        x[i] = (x[i] + v * Math.cos(phi[i]) + WW) % WW;
+        y[i] = (y[i] + v * Math.sin(phi[i]) + WH) % WH;
+      }
+      stepCount++;
+    }
+
+    function color(i: number) {
+      if (close[i] > 15) return MEDIA.coral;
+      const N = cnt[i];
+      if (N > 35) return MEDIA.amber;
+      if (N > 15) return MEDIA.sky;
+      if (N >= 13) return MEDIA.violet;
+      return MEDIA.mint;
+    }
+
+    function draw() {
+      const { ctx, w, h } = cv;
+      if (!w) return;
+      ctx.fillStyle = MEDIA.bg; ctx.fillRect(0, 0, w, h);
+      const s = w / WW, rad = Math.max(1.4, s * 0.42);
+      for (let i = 0; i < n; i++) {
+        ctx.fillStyle = color(i);
+        ctx.beginPath(); ctx.arc(x[i] * s, h - y[i] * s, rad, 0, 6.283); ctx.fill();
+      }
+      let inCells = 0; for (let i = 0; i < n; i++) if (cnt[i] > 15) inCells++;
+      $('.step').textContent = String(stepCount);
+      $('.cells').textContent = String(inCells);
+    }
+
+    const loop = visibleLoop(root, () => { for (let k = 0; k < speed; k++) step(); draw(); });
+    if (reducedMotion()) { loop.paused = true; $('[data-act="pause"]').textContent = 'Play'; }
+    bindRange(root, 'alpha', (v) => `${v}°`, (v) => { alpha = v; });
+    bindRange(root, 'beta', (v) => `${v}°`, (v) => { beta = v; });
+    bindRange(root, 'dens', (v) => v.toFixed(2), (v) => { dens = v; reset(); });
+    bindRange(root, 'speed', (v) => `${v}×`, (v) => { speed = v; });
+    $('[data-act="new"]').addEventListener('click', () => { seed++; reset(); });
+    $('[data-act="pause"]').addEventListener('click', (e) => {
+      loop.paused = !loop.paused;
+      (e.currentTarget as HTMLElement).textContent = loop.paused ? 'Play' : 'Pause';
+    });
+    $('[data-act="paper"]').addEventListener('click', () => {
+      const set = (name: string, val: number) => { const el = root.querySelector<HTMLInputElement>(`input[name="${name}"]`)!; el.value = String(val); el.dispatchEvent(new Event('input')); };
+      set('alpha', 180); set('beta', 17);
+    });
+    reset();
+  });
+</script>
+
+<style>
+  .pps { display: grid; gap: 14px; }
+  .legend { font-size: .8rem; }
+</style>

@@ -1,0 +1,290 @@
+{
+ "/media/adaptive-sensing/adaptive-queries.mp4": {
+  "w": 700,
+  "h": 308
+ },
+ "/media/adaptive-sensing/adaptive-queries.webp": {
+  "w": 700,
+  "h": 308
+ },
+ "/media/adaptive-sensing/comparison.webp": {
+  "w": 1600,
+  "h": 600
+ },
+ "/media/adaptive-sensing/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/adaptive-sensing/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/attention-enhanced-reservoir/benchmark.webp": {
+  "w": 1260,
+  "h": 1050
+ },
+ "/media/attention-enhanced-reservoir/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/attention-enhanced-reservoir/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/causal-convolution-transformer/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/causal-convolution-transformer/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/causal-convolution-transformer/loss.webp": {
+  "w": 999,
+  "h": 599
+ },
+ "/media/ctm-cifar/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/ctm-cifar/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/ctm-cifar/per-tick.webp": {
+  "w": 1320,
+  "h": 880
+ },
+ "/media/ctm-cifar/tick0-fix.webp": {
+  "w": 1430,
+  "h": 520
+ },
+ "/media/echomario/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/echomario/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/echomario/dagger.webp": {
+  "w": 1200,
+  "h": 456
+ },
+ "/media/echomario/reservoir-gaps.mp4": {
+  "w": 864,
+  "h": 432
+ },
+ "/media/echomario/reservoir-gaps.webp": {
+  "w": 864,
+  "h": 432
+ },
+ "/media/echomario/teacher.mp4": {
+  "w": 864,
+  "h": 432
+ },
+ "/media/echomario/teacher.webp": {
+  "w": 864,
+  "h": 432
+ },
+ "/media/fhn-mnist/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/fhn-mnist/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/gfx1010-rocblas/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/gfx1010-rocblas/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/llm-training-dynamics/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/llm-training-dynamics/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/master-memory-function/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/master-memory-function/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/master-memory-function/delay-scan.webp": {
+  "w": 910,
+  "h": 494
+ },
+ "/media/master-memory-function/esn-capacity.webp": {
+  "w": 1170,
+  "h": 416
+ },
+ "/media/multiplexed-networks/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/multiplexed-networks/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/multiplexed-networks/curves.webp": {
+  "w": 1440,
+  "h": 504
+ },
+ "/media/neat/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/neat/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/neat/dodge-training.webp": {
+  "w": 1300,
+  "h": 468
+ },
+ "/media/neat/dodge.mp4": {
+  "w": 1080,
+  "h": 470
+ },
+ "/media/neat/dodge.webp": {
+  "w": 1080,
+  "h": 470
+ },
+ "/media/neat/double-pole-champion.webp": {
+  "w": 454,
+  "h": 609
+ },
+ "/media/neat/viewer.webp": {
+  "w": 1140,
+  "h": 480
+ },
+ "/media/neat/xor-champion.webp": {
+  "w": 417,
+  "h": 635
+ },
+ "/media/neat/xor-training.webp": {
+  "w": 1300,
+  "h": 468
+ },
+ "/media/oscillator-networks/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/oscillator-networks/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/oscillator-networks/locking.webp": {
+  "w": 1100,
+  "h": 660
+ },
+ "/media/oscillator-networks/sweep.webp": {
+  "w": 1210,
+  "h": 440
+ },
+ "/media/paperforge/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/paperforge/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/power-forecast-mlops/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/power-forecast-mlops/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/primordial-particle-system/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/primordial-particle-system/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/primordial-particle-system/pps.mp4": {
+  "w": 760,
+  "h": 760
+ },
+ "/media/primordial-particle-system/pps.webp": {
+  "w": 760,
+  "h": 760
+ },
+ "/media/reservoir-language-model/bpc-vs-params.webp": {
+  "w": 975,
+  "h": 585
+ },
+ "/media/reservoir-language-model/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/reservoir-language-model/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/reservoir-language-model/laerc-bpe1024.webp": {
+  "w": 910,
+  "h": 520
+ },
+ "/media/reservoir-language-model/laerc-owt.webp": {
+  "w": 770,
+  "h": 440
+ },
+ "/media/reservoir-language-model/radius-sweep.webp": {
+  "w": 715,
+  "h": 468
+ },
+ "/media/world-generation/ants.mp4": {
+  "w": 960,
+  "h": 960
+ },
+ "/media/world-generation/ants.webp": {
+  "w": 960,
+  "h": 960
+ },
+ "/media/world-generation/cover-640.webp": {
+  "w": 640,
+  "h": 400
+ },
+ "/media/world-generation/cover.webp": {
+  "w": 1280,
+  "h": 800
+ },
+ "/media/world-generation/evolution.webp": {
+  "w": 1540,
+  "h": 770
+ },
+ "/media/world-generation/foraging.webp": {
+  "w": 1320,
+  "h": 462
+ },
+ "/media/world-generation/pwg-layers.webp": {
+  "w": 1031,
+  "h": 260
+ },
+ "/media/world-generation/pwg-world-42.webp": {
+  "w": 1024,
+  "h": 780
+ },
+ "/media/world-generation/world-sim.mp4": {
+  "w": 750,
+  "h": 750
+ },
+ "/media/world-generation/world-sim.webp": {
+  "w": 750,
+  "h": 750
+ }
+}

@@ -10,6 +10,12 @@
   --max: 1180px;
   --radius: 20px;
   --shadow: 0 16px 60px rgba(18, 24, 20, 0.06);
+  --amber: #b06f17;
+  --coral: #b4533c;
+  --sky: #2f6f9f;
+  --violet: #6b5aa8;
+  --media-bg: #0c110f;
+  --figure-bg: #ffffff;
   color-scheme: light;
 }
 
@@ -23,6 +29,11 @@
   --accent: #9dc6b5;
   --accent-soft: rgba(157, 198, 181, 0.10);
   --shadow: 0 16px 60px rgba(0, 0, 0, 0.18);
+  --amber: #e3a857;
+  --coral: #d8735e;
+  --sky: #7fb0d8;
+  --violet: #a99ad6;
+  --figure-bg: #f4f3ef;
   color-scheme: dark;
 }
 
@@ -135,3 +146,24 @@ p { color: var(--muted); }
 /* Math: never let a wide equation push the page sideways */
 .katex-display { margin: 0; overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
 .split > *, .content-grid > *, .grid > * { min-width: 0; }
+
+/* Live demos (project pages) */
+.demo-controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.demo-controls label { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: .86rem; font-weight: 650; }
+.demo-controls output { min-width: 3.6em; color: var(--text); font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .82rem; }
+.demo-controls input[type='range'] { width: 150px; accent-color: var(--accent); }
+.demo-btn {
+  min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface-strong); color: var(--text); font-size: .86rem; font-weight: 700; cursor: pointer;
+}
+.demo-btn:hover { border-color: var(--accent); }
+.demo-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.demo-canvas { display: block; width: 100%; height: auto; border-radius: 14px; background: var(--media-bg); touch-action: manipulation; }
+.demo-readout { display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--muted); font-size: .86rem; }
+.demo-readout b { color: var(--text); font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-weight: 650; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

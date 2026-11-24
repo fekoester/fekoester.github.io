@@ -1,3 +1,5 @@
+import { showcase, type Showcase } from './showcase';
+
 export type Category = 'Research' | 'Software' | 'Experiment' | 'Simulation';
 
 export type Equation = { tex: string; caption?: string };
@@ -19,9 +21,11 @@ export type Project = {
   caveats?: string[];
 };
 
-const gh = (repo: string) => ({ label: 'GitHub', href: `https://github.com/fekoester/${repo}` });
+export type ShowcasedProject = Project & Showcase & { cover: string; coverSmall: string };
 
-export const projects: Project[] = [
+const gh =(repo: string) => ({ label: 'GitHub', href: `https://github.com/fekoester/${repo}` });
+
+const base: Project[] = [
   {
     slug: 'llm-training-dynamics',
     title: 'The Physics of LLM Training',
@@ -333,9 +337,17 @@ export const projects: Project[] = [
     ],
     equations: [
       {
-        tex: String.raw`\dot\varphi_i = \omega - \sin\varphi_i + \frac{\kappa}{N}\sum_j A_{ij}\sin(\varphi_j-\varphi_i) + K\big[\varphi_i(t-\tau)-\varphi_i(t)\big]`,
+        tex: String.raw`\dot x_i = x_i(1-r_i^2) + y_i(x_i-b_i) + \varepsilon\sum_j A_{ij}(x_j-x_i) + \kappa\big(x_i(t-\tau)-x_i(t)\big)`,
+        caption: 'Active rotator in Cartesian coordinates (ẏ is analogous), diffusive coupling and Pyragas delayed feedback.',
       },
-      { tex: String.raw`R\,e^{i\psi} = \frac{1}{N}\sum_{j=1}^{N} e^{i\varphi_j}` },
+      {
+        tex: String.raw`\dot\varphi = b - \cos\varphi \;\;(r=1):\qquad |b|<1 \text{ excitable},\quad |b|>1:\; T = \frac{2\pi}{\sqrt{b^2-1}}`,
+        caption: 'On the limit cycle: excitable below the SNIPER bifurcation at |b| = 1, oscillating above it with a diverging period.',
+      },
+      {
+        tex: String.raw`R = \Big|\frac{1}{N}\sum_{j=1}^{N} e^{i\varphi_j}\Big|,\qquad \varphi_j = \operatorname{atan2}(y_j, x_j)`,
+        caption: 'Kuramoto order parameter. SNIPER oscillators linger near φ = 0, so even incoherent networks give R ≈ 0.3.',
+      },
     ],
     tags: ['C++17', 'Nonlinear dynamics', 'Delay systems'],
     status: 'Done',
@@ -391,6 +403,14 @@ export const projects: Project[] = [
     ],
   },
 ];
+
+// Media, key facts, figures and the live demo of every project live in showcase.ts (by slug).
+export const projects: ShowcasedProject[] = base.map((p) => ({
+  ...p,
+  ...showcase[p.slug],
+  cover: `/media/${p.slug}/cover.webp`,
+  coverSmall: `/media/${p.slug}/cover-640.webp`,
+}));
 
 export const categories: Category[] = ['Research', 'Software', 'Experiment', 'Simulation'];
 export const featuredProjects = projects.filter((p) => p.featured);

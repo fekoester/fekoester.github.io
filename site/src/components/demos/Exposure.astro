@@ -1,0 +1,137 @@
+---
+import DemoFrame from '../DemoFrame.astro';
+---
+<DemoFrame title="Reweight the data, watch the books balance">
+  <div slot="intro">
+    <p>Patterns follow a Zipf law. Each pattern’s loss falls by β = 0.5 nats per e-fold of exposures, the law measured on TinyStories. Sample the training data from <i>q ∝ p<sup>T</sup></i> instead of <i>p</i>: T &lt; 1 upsamples rare patterns, T &gt; 1 the frequent ones. Then score on the natural distribution, as in deployment.</p>
+  </div>
+  <div class="exposure" data-demo="exposure">
+    <div class="demo-controls">
+      <label>temperature T <input type="range" name="T" id="exp-T" min="0.3" max="1.8" step="0.01" value="0.6" /><output for="exp-T"></output></label>
+      <label>Zipf exponent <input type="range" name="s" id="exp-s" min="0.6" max="1.4" step="0.01" value="1.0" /><output for="exp-s"></output></label>
+    </div>
+    <div class="panes">
+      <figure><canvas class="demo-canvas c1" aria-label="Change of loss per pattern against its frequency rank"></canvas><figcaption>Loss change per pattern, by frequency rank</figcaption></figure>
+      <figure><canvas class="demo-canvas c2" aria-label="Change of the expected loss against the sampling temperature"></canvas><figcaption>Expected loss on natural data vs T</figcaption></figure>
+    </div>
+    <div class="demo-readout">
+      <span>rare patterns (bottom 90%): <b class="gain"></b></span>
+      <span>frequent patterns (top 10%): <b class="loss"></b></span>
+      <span>net change = β·KL(p‖q): <b class="net"></b></span>
+    </div>
+  </div>
+  <div slot="foot"><p>Gibbs’ inequality: Σ p ln(p/q) ≥ 0, with equality only at q = p. Under a logarithmic exposure law, no reweighting of the data beats the natural distribution.</p></div>
+</DemoFrame>
+
+<script>
+  import { setupCanvas, palette, onThemeChange, axes, bindRange } from '../../lib/demo';
+
+  document.querySelectorAll<HTMLElement>('[data-demo="exposure"]').forEach((root) => {
+    const K = 2000, beta = 0.5;
+    const c1 = setupCanvas(root.querySelector<HTMLCanvasElement>('.c1')!, 1.45, () => draw());
+    const c2 = setupCanvas(root.querySelector<HTMLCanvasElement>('.c2')!, 1.45, () => draw());
+    let T = 0.6, s = 1.0;
+
+    const dist = (expo: number) => {
+      const p = new Float64Array(K);
+      let z = 0;
+      for (let i = 0; i < K; i++) { p[i] = Math.pow(i + 1, -expo); z += p[i]; }
+      for (let i = 0; i < K; i++) p[i] /= z;
+      return p;
+    };
+    const reweight = (p: Float64Array, t: number) => {
+      const q = new Float64Array(K);
+      let z = 0;
+      for (let i = 0; i < K; i++) { q[i] = Math.pow(p[i], t); z += q[i]; }
+      for (let i = 0; i < K; i++) q[i] /= z;
+      return q;
+    };
+    const kl = (p: Float64Array, q: Float64Array) => { let k = 0; for (let i = 0; i < K; i++) k += p[i] * Math.log(p[i] / q[i]); return k; };
+
+    function draw() {
+      if (!c1.w || !c2.w) return;
+      const pal = palette();
+      const p = dist(s), q = reweight(p, T);
+      // left: per-pattern change of loss
+      {
+        const { ctx, w, h } = c1;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = pal.surface; ctx.fillRect(0, 0, w, h);
+        const d = new Float64Array(K);
+        let lo = 0, hi = 0;
+        for (let i = 0; i < K; i++) { d[i] = -beta * Math.log(q[i] / p[i]); lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+        const m = Math.max(0.5, Math.ceil(Math.max(-lo, hi) * 2) / 2);
+        const box = { x: 54, y: 16, w: w - 70, h: h - 58 };
+        const ticks = [-m, -m / 2, 0, m / 2, m];
+        const { tx, ty } = axes(ctx, box, [1, K], [-m, m], {
+          color: pal.muted, grid: pal.line, logx: true, xticks: [1, 10, 100, 1000], yticks: ticks,
+          xlabel: 'frequency rank (log)', ylabel: 'Δ loss (nats)', yfmt: (v) => (v > 0 ? '+' : '') + v.toFixed(2),
+        });
+        for (let i = 0; i < K; i++) {
+          const x0 = tx(i + 1), x1 = tx(i + 2);
+          ctx.fillStyle = d[i] < 0 ? pal.accent : pal.coral;
+          ctx.globalAlpha = 0.85;
+          const y = ty(d[i]), y0 = ty(0);
+          ctx.fillRect(x0, Math.min(y, y0), Math.max(1, x1 - x0), Math.abs(y - y0));
+        }
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = pal.text; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(box.x, ty(0)); ctx.lineTo(box.x + box.w, ty(0)); ctx.stroke();
+        ctx.font = '600 12px Inter, system-ui, sans-serif';
+        ctx.fillStyle = pal.accent; ctx.textAlign = 'right';
+        ctx.fillText(T < 1 ? 'rare patterns: better' : 'frequent patterns: better', box.x + box.w - 6, box.y + 10);
+        ctx.fillStyle = pal.coral;
+        ctx.fillText(T < 1 ? 'frequent patterns: worse' : 'rare patterns: worse', box.x + box.w - 6, box.y + box.h - 10);
+      }
+      // right: expected loss on the natural distribution against T
+      {
+        const { ctx, w, h } = c2;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = pal.surface; ctx.fillRect(0, 0, w, h);
+        const ts: number[] = [], ls: number[] = [];
+        for (let t = 0.3; t <= 1.801; t += 0.02) { ts.push(t); ls.push(beta * kl(p, reweight(p, t))); }
+        const ymax = Math.max(0.05, Math.max(...ls)) * 1.1;
+        const box = { x: 54, y: 16, w: w - 70, h: h - 58 };
+        const { tx, ty } = axes(ctx, box, [0.3, 1.8], [0, ymax], {
+          color: pal.muted, grid: pal.line, xticks: [0.5, 1, 1.5], yticks: [0, ymax / 2, ymax].map((v) => +v.toFixed(2)),
+          xlabel: 'sampling temperature T', ylabel: 'Δ expected loss (nats)', yfmt: (v) => v.toFixed(2),
+        });
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+        ts.forEach((t, i) => (i ? ctx.lineTo(tx(t), ty(ls[i])) : ctx.moveTo(tx(t), ty(ls[i]))));
+        ctx.stroke();
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(tx(1), box.y); ctx.lineTo(tx(1), box.y + box.h); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.muted; ctx.font = '12px Inter, system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('q = p', tx(1) + 6, box.y + 12);
+        const cur = beta * kl(p, q);
+        ctx.fillStyle = pal.coral;
+        ctx.beginPath(); ctx.arc(tx(T), ty(cur), 6, 0, Math.PI * 2); ctx.fill();
+      }
+      // readout: p-weighted contributions
+      let gain = 0, loss = 0;
+      const cut = Math.round(K * 0.1);
+      for (let i = 0; i < K; i++) {
+        const c = p[i] * -beta * Math.log(q[i] / p[i]);
+        if (i < cut) loss += c; else gain += c;
+      }
+      const f = (v: number) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(3) + ' nats';
+      root.querySelector('.gain')!.textContent = f(gain);
+      root.querySelector('.loss')!.textContent = f(loss);
+      root.querySelector('.net')!.textContent = f(gain + loss);
+    }
+
+    bindRange(root, 'T', (v) => v.toFixed(2), (v) => { T = v; draw(); });
+    bindRange(root, 's', (v) => v.toFixed(2), (v) => { s = v; draw(); });
+    onThemeChange(draw);
+    draw();
+  });
+</script>
+
+<style>
+  .exposure { display: grid; gap: 16px; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panes figure { margin: 0; }
+  .panes figcaption { margin-top: 6px; color: var(--muted); font-size: .82rem; }
+  .panes :global(.demo-canvas) { background: var(--surface-strong); border: 1px solid var(--line); }
+  @media (max-width: 680px) { .panes { grid-template-columns: 1fr; } }
+</style>
