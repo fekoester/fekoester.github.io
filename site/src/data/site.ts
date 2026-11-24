@@ -16,5 +16,5 @@ export const site = {
     email: '',
   },
   // Bump whenever the site content changes meaningfully.
-  updated: '2026-11-23',
+  updated: '2026-11-24',
 };

@@ -11,3 +11,7 @@ bump `updated` in `site/src/data/site.ts`, then `cd site && npm run publish`, co
 Guardrails: verify bibliographic data before adding a paper; link only public repos; never put
 employer-confidential work, private contact details or unreviewed numbers on the site; mark
 preprints and work in progress clearly (e.g. EchoMario has no established reservoir advantage yet).
+
+Project pages: visuals live in `site/src/data/showcase.ts` (cover, facts, figures, video loops, demo key);
+media are built by `site/tools/media/make_media.py` (see README). Facts and captions must come from the
+paper or the repository README. Demo components are in `site/src/components/demos/`.

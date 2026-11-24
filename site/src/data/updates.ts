@@ -5,6 +5,11 @@ export type Update = { date: string; text: string; href?: string };
 export const updates: Update[] = [
   {
     date: '2026-11',
+    text: 'Project pages rebuilt: real figures and video loops from every repository, and 14 live demos that run in the browser.',
+    href: '/projects',
+  },
+  {
+    date: '2026-11',
     text: 'Working notes online: an action principle for transformer training, and why data reweighting is zero-sum.',
     href: '/projects/llm-training-dynamics',
   },
